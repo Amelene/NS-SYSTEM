@@ -265,7 +265,85 @@ table.pgrid td{border:1px solid #9fb5bf;padding:4px 6px;vertical-align:top}
 .fleet-user{color:#CFE3E8;font-size:12px;white-space:nowrap;align-self:center;margin:0 4px}
 @media (max-width:640px){ .fleet-user{display:none} }
 .ph .phmark img{width:100%;height:auto}@media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
-</style>
+/* =====================  Refreshed look (matches CMS and NS FINANCE)  ===================== */
+body{background:#F1F5F6}
+.fic{width:100%;height:100%;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* top bar */
+.topbar{background:linear-gradient(120deg,#07293a 0%,#0B3D56 55%,#0E6B76 100%);padding:10px 18px;box-shadow:none}
+.mono{width:auto;min-width:66px;height:44px;border-radius:10px;padding:4px 8px;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.brandtext b{font-size:17px;letter-spacing:.8px}
+.tb{border-radius:9px;padding:7px 12px;font-weight:600}
+.tb.warnbtn{box-shadow:0 2px 8px rgba(225,101,59,.35)}
+/* module menu */
+.modnav{background:#07293a;padding:0 10px;gap:4px;border-bottom:1px solid rgba(255,255,255,.06);top:64px}
+.modnav button{display:inline-flex;align-items:center;gap:8px;padding:12px 14px;font-size:13.5px;font-weight:600;color:#bcd5dd;border-bottom-width:3px}
+.modnav button .mic{display:inline-flex;width:17px;height:17px;color:#7FB3BC}
+.modnav button:hover{color:#fff;background:rgba(255,255,255,.05)}
+.modnav button.on{color:#fff;background:rgba(255,255,255,.08)}
+.modnav button.on .mic{color:#F4A07F}
+/* page layout */
+.wrap{padding:22px 22px 40px}
+.pagehead{margin-bottom:16px}
+.pagehead h1{font-size:24px;font-weight:800;color:var(--navy);border-left:4px solid var(--orange);padding-left:12px}
+.pagehead p{padding-left:16px;font-size:13.5px}
+.subnav{gap:8px;margin-bottom:16px}
+.subnav button{padding:8px 15px;border-radius:999px;font-weight:600;color:#3a5763}
+.subnav button:hover{border-color:var(--teal-l)}
+.subnav button.on{box-shadow:0 2px 8px rgba(14,107,118,.25)}
+/* cards: white header with an accent instead of a solid teal bar */
+.card{border-radius:14px;box-shadow:0 1px 2px rgba(11,61,86,.05);margin-bottom:16px}
+.card h2{background:#fff;color:var(--navy);font-size:15px;font-weight:700;padding:14px 16px;border-bottom:1px solid var(--line);letter-spacing:0}
+.card h2::before{content:"";width:4px;height:18px;border-radius:2px;background:var(--orange);flex:none}
+.card .body{padding:16px}
+.toolbar{background:#FBFCFD;padding:12px 16px;gap:10px}
+.toolbar input[type=text],.toolbar select{border-radius:9px;padding:8px 11px}
+/* buttons */
+.btn{border-radius:9px;padding:8px 14px;font-weight:600}
+.btn.sm{border-radius:8px;padding:5px 10px}
+.btn.g{border-color:#cfdbe0}
+/* tables */
+table.grid{font-size:13.2px}
+table.grid th{background:#F5F8FA;color:#5d7480;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--line)}
+table.grid td{padding:10px 10px;border-bottom:1px solid #EEF3F5}
+table.grid tr:nth-child(even) td{background:#fff}
+table.grid tr:hover td{background:#F5FAFB}
+.pill{padding:3px 10px;font-size:11.5px}
+.empty{padding:34px 16px}
+/* KPI tiles */
+.kpis{grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:12px;margin-bottom:16px}
+.kpi{position:relative;border:1px solid var(--line);border-left:1px solid var(--line);border-radius:14px;padding:15px 15px 14px;box-shadow:0 1px 2px rgba(11,61,86,.05);overflow:hidden;--k:var(--teal)}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--k)}
+.kpi.alert{--k:var(--orange)} .kpi.danger{--k:var(--bad)} .kpi.money{--k:#C9962B}
+.kpi.has-ic{display:flex;gap:12px;align-items:flex-start}
+.kpi .kic{width:40px;height:40px;flex:0 0 40px;border-radius:11px;padding:10px;color:var(--k);background:color-mix(in srgb, var(--k) 12%, #fff)}
+.kpi .kb{min-width:0}
+.kpi .n{font-size:24px;font-weight:800;color:var(--ink)}
+.kpi.money .n{font-size:20px}
+.kpi .l{font-size:12px;font-weight:600}
+/* alert rows */
+.arow{padding:12px 16px}
+.arow:hover{background:#F8FBFC}
+/* detail tiles */
+.dl .i{border-radius:10px;background:#FBFCFD;padding:10px 12px}
+.dl .i span{text-transform:uppercase;letter-spacing:.04em;font-size:10.5px;font-weight:700}
+/* modal */
+.modal{border-radius:14px}
+.modal header{background:#fff;color:var(--navy);border-bottom:1px solid var(--line);padding:15px 18px}
+.modal header h3{font-size:16px;font-weight:700}
+.modal header .x{background:#F1F5F6;color:var(--navy)}
+.modal footer{background:#FBFCFD}
+.f input,.f select,.f textarea{border-radius:9px;padding:9px 11px}
+.fsec{text-transform:uppercase;font-size:11px;color:var(--teal);letter-spacing:.08em}
+@media (max-width:640px){
+  .wrap{padding:12px 12px 30px}
+  .kpis{grid-template-columns:1fr 1fr;gap:8px}
+  .kpi.has-ic{flex-direction:column;gap:8px}
+  .kpi .n{font-size:19px}
+  .modnav button{padding:11px 11px}
+  .pagehead h1{font-size:20px}
+  .topbar{position:static}
+  .modnav{top:0}
+}</style>
 </head>
 <body>
 <div class="topbar">
@@ -2762,7 +2840,19 @@ function seed(db){
 /* ---------------- Boot ----------------------------------------------- */
 (function(){
   var _r=App.render;
-  App.render=function(){ _r.call(App); App.refreshAlertBadge(); };
+  App.render=function(){ _r.call(App); App.refreshAlertBadge(); decorateKpis(); };
+})();
+/* KPI tiles written directly as HTML get the same icon treatment as kpi() */
+function decorateKpis(){
+  var ks=document.querySelectorAll("#view .kpi:not(.has-ic)");
+  for(var i=0;i<ks.length;i++){
+    var k=ks[i], l=k.querySelector(".l");
+    var ic=kpiIcon(l?l.textContent:"", k.className);
+    k.innerHTML='<span class="kic">'+ficon(ic)+'</span><div class="kb">'+k.innerHTML+'</div>';
+    k.classList.add("has-ic");
+  }
+}
+(function(){
 })();
 App.start();
 </script>
