@@ -1,0 +1,2627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NS FLEET — NAVI Shipping Fleet Management System</title>
+<style>
+:root{
+  --navy:#0B3D56; --navy-d:#07293a; --teal:#0E6B76; --teal-l:#128795; --orange:#E1653B; --orange-d:#c4502a;
+  --ink:#12222c; --muted:#5d7480; --line:#d7e1e6; --bg:#f2f6f8; --card:#ffffff;
+  --ok:#1a7f4b; --warn:#b6801a; --bad:#b3261e;
+  --r:8px; --sh:0 1px 3px rgba(11,61,86,.10), 0 6px 18px rgba(11,61,86,.06);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:"Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45;-webkit-text-size-adjust:100%}
+button,input,select,textarea{font-family:inherit;font-size:inherit}
+a{color:var(--teal)}
+
+/* ---------- Top bar ---------- */
+.topbar{background:var(--navy);color:#fff;padding:10px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.brandmark{display:flex;align-items:center;gap:10px;min-width:0}
+.mono{width:60px;height:42px;border-radius:7px;background:#EAF4F3;display:flex;align-items:center;justify-content:center;flex:none;padding:3px 4px;box-shadow:inset 0 0 0 1px rgba(11,61,86,.10)}
+.mono svg{width:100%;height:100%;display:block}
+.ph .phmark{width:74px;margin:0 auto 2px}
+.ph .phmark svg{width:100%;display:block}
+.brandtext b{display:block;font-size:16px;letter-spacing:.5px;line-height:1.1}
+.brandtext span{display:block;font-size:11px;opacity:.78;letter-spacing:.3px}
+.topbar .spacer{flex:1}
+.topbtns{display:flex;gap:6px;flex-wrap:wrap}
+.tb{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:13px}
+.tb:hover{background:rgba(255,255,255,.22)}
+.tb.warnbtn{background:var(--orange);border-color:var(--orange)}
+
+/* ---------- Module nav ---------- */
+.modnav{background:var(--navy-d);display:flex;gap:2px;overflow-x:auto;padding:0 6px;position:sticky;top:58px;z-index:49;-webkit-overflow-scrolling:touch}
+.modnav button{background:transparent;border:0;border-bottom:3px solid transparent;color:#cfe1e8;padding:11px 13px;white-space:nowrap;cursor:pointer;font-size:13.5px}
+.modnav button.on{color:#fff;border-bottom-color:var(--orange);background:rgba(255,255,255,.06)}
+
+/* ---------- Layout ---------- */
+.wrap{padding:14px;max-width:1500px;margin:0 auto}
+.pagehead{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.pagehead h1{margin:0;font-size:21px;color:var(--navy);letter-spacing:.2px}
+.pagehead p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.subnav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.subnav button{background:#fff;border:1px solid var(--line);color:var(--navy);padding:7px 12px;border-radius:20px;cursor:pointer;font-size:13px}
+.subnav button.on{background:var(--teal);border-color:var(--teal);color:#fff}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);margin-bottom:14px;overflow:hidden}
+.card h2{margin:0;padding:11px 14px;font-size:14.5px;color:#fff;background:var(--teal);letter-spacing:.3px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card h2 .r{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.card .body{padding:14px}
+.card .body.tight{padding:0}
+
+/* ---------- Toolbar ---------- */
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 14px;background:#fbfdfe;border-bottom:1px solid var(--line)}
+.toolbar input[type=text],.toolbar select{padding:7px 9px;border:1px solid var(--line);border-radius:6px;background:#fff;min-width:120px}
+.toolbar .grow{flex:1;min-width:150px}
+
+/* ---------- Buttons ---------- */
+.btn{background:var(--teal);color:#fff;border:0;padding:8px 13px;border-radius:6px;cursor:pointer;font-size:13.5px}
+.btn:hover{background:var(--teal-l)}
+.btn.o{background:var(--orange)} .btn.o:hover{background:var(--orange-d)}
+.btn.g{background:#fff;color:var(--navy);border:1px solid var(--line)} .btn.g:hover{background:#eef4f7}
+.btn.d{background:var(--bad)}
+.btn.sm{padding:5px 9px;font-size:12.5px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* ---------- Tables ---------- */
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table.grid{width:100%;border-collapse:collapse;font-size:13.2px;min-width:640px}
+table.grid th{background:#eaf1f4;color:var(--navy);text-align:left;padding:9px 10px;border-bottom:2px solid var(--line);white-space:nowrap;font-weight:600;position:sticky;top:0}
+table.grid td{padding:8px 10px;border-bottom:1px solid #eef3f5;vertical-align:top}
+table.grid tr:nth-child(even) td{background:#fafcfd}
+table.grid tr:hover td{background:#f0f7fa}
+table.grid td.act{white-space:nowrap}
+.empty{padding:28px 14px;text-align:center;color:var(--muted)}
+.empty b{display:block;color:var(--navy);margin-bottom:4px;font-size:15px}
+
+/* ---------- Pills / status ---------- */
+.pill{display:inline-block;padding:2px 9px;border-radius:12px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.p-ok{background:#e3f4ea;color:var(--ok)}
+.p-warn{background:#fdf3dd;color:var(--warn)}
+.p-bad{background:#fbe4e2;color:var(--bad)}
+.p-neu{background:#e9eff2;color:var(--muted)}
+.p-info{background:#e2f0f3;color:var(--teal)}
+
+/* ---------- KPI ---------- */
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:10px}
+.kpi{background:#fff;border:1px solid var(--line);border-left:4px solid var(--teal);border-radius:var(--r);padding:12px 13px;box-shadow:var(--sh)}
+.kpi .n{font-size:25px;font-weight:700;color:var(--navy);line-height:1.1}
+.kpi .l{font-size:12px;color:var(--muted);margin-top:3px}
+.kpi.alert{border-left-color:var(--orange)}
+.kpi.danger{border-left-color:var(--bad)}
+.kpi.money .n{font-size:19px}
+
+/* ---------- Alerts ---------- */
+.alist{display:flex;flex-direction:column}
+.arow{display:flex;gap:10px;align-items:flex-start;padding:10px 14px;border-bottom:1px solid #eef3f5}
+.arow:last-child{border-bottom:0}
+.arow .dot{width:9px;height:9px;border-radius:50%;margin-top:6px;flex:none}
+.dot.bad{background:var(--bad)} .dot.warn{background:var(--warn)} .dot.info{background:var(--teal)}
+.arow .t{flex:1;min-width:0}
+.arow .t b{display:block;font-size:13.5px;color:var(--navy)}
+.arow .t span{font-size:12.5px;color:var(--muted)}
+
+/* ---------- Forms / modal ---------- */
+.ovl{position:fixed;inset:0;background:rgba(7,41,58,.55);display:none;align-items:flex-start;justify-content:center;z-index:200;padding:18px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.ovl.on{display:flex}
+.modal{background:#fff;border-radius:10px;width:100%;max-width:880px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;margin:auto}
+.modal.sm{max-width:430px}
+.modal.lg{max-width:1080px}
+.modal header{background:var(--navy);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px}
+.modal header h3{margin:0;font-size:15.5px;font-weight:600;flex:1}
+.modal header .x{background:rgba(255,255,255,.15);border:0;color:#fff;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:16px;line-height:1}
+.modal .mbody{padding:16px;max-height:68vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.modal footer{padding:12px 16px;background:#f7fafb;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.f{display:flex;flex-direction:column;gap:4px}
+.f.full{grid-column:1/-1}
+.f label{font-size:12.2px;color:var(--muted);font-weight:600}
+.f label .req{color:var(--bad)}
+.f input,.f select,.f textarea{padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;width:100%}
+.f input:focus,.f select:focus,.f textarea:focus{outline:2px solid var(--teal-l);outline-offset:0;border-color:var(--teal)}
+.f textarea{min-height:66px;resize:vertical}
+.f .hint{font-size:11.5px;color:var(--muted)}
+.fsec{grid-column:1/-1;margin-top:4px;padding-top:8px;border-top:1px solid var(--line);color:var(--navy);font-weight:700;font-size:12.5px;letter-spacing:.4px}
+.filebox{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12.5px}
+
+/* ---------- Detail view ---------- */
+.dl{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.dl .i{background:#f7fafb;border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+.dl .i span{display:block;font-size:11.5px;color:var(--muted)}
+.dl .i b{font-size:13.5px;color:var(--ink);font-weight:600;word-break:break-word}
+
+/* ---------- Toast ---------- */
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;background:var(--navy);color:#fff;padding:10px 18px;border-radius:22px;z-index:400;box-shadow:0 8px 24px rgba(0,0,0,.25);display:none;font-size:13.5px;max-width:90vw;text-align:center}
+
+/* ---------- Print ---------- */
+#printArea{display:none}
+.ph{text-align:center;border-bottom:3px solid var(--navy);padding-bottom:8px;margin-bottom:12px}
+.ph .co{font-size:19px;font-weight:800;color:var(--navy);letter-spacing:1px}
+.ph .tag{font-size:10.5px;color:var(--teal);font-style:italic}
+.ph .ad{font-size:9.5px;color:#333;margin-top:3px;line-height:1.4}
+.pt{text-align:center;font-size:14px;font-weight:700;color:var(--navy);margin:10px 0 4px;letter-spacing:.6px}
+.pmeta{font-size:10.5px;color:#444;margin-bottom:8px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px}
+table.pgrid{width:100%;border-collapse:collapse;font-size:10.5px}
+table.pgrid th{background:#0B3D56;color:#fff;border:1px solid #0B3D56;padding:5px 6px;text-align:left}
+table.pgrid td{border:1px solid #9fb5bf;padding:4px 6px;vertical-align:top}
+.pfoot{margin-top:14px;font-size:9.5px;color:#333;border-top:1px solid #9fb5bf;padding-top:6px}
+.psign{margin-top:26px;display:flex;gap:40px;flex-wrap:wrap;font-size:10.5px}
+.psign div{flex:1;min-width:180px;border-top:1px solid #333;padding-top:4px;text-align:center}
+.seal{margin-top:12px;text-align:center;font-size:10px;font-weight:700;color:#0B3D56;letter-spacing:.5px}
+@media print{
+  body>*{display:none !important}
+  #printArea{display:block !important;padding:0;margin:0}
+  @page{size:A4;margin:12mm}
+}
+@media (max-width:640px){
+  .wrap{padding:10px}
+  .modal .mbody{max-height:74vh}
+  .brandtext span{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brandmark">
+    <div class="mono" id="logoMark"></div>
+    <div class="brandtext"><b>NS FLEET</b><span>NAVI Shipping Fleet Management System</span></div>
+  </div>
+  <div class="spacer"></div>
+  <div class="topbtns">
+    <button class="tb" onclick="App.backup()">Back up data</button>
+    <button class="tb" onclick="App.restore()">Restore data</button>
+    <button class="tb warnbtn" id="alertBtn" onclick="App.go('dashboard')">Alerts</button>
+  </div>
+</div>
+
+<nav class="modnav" id="modnav"></nav>
+
+<div class="wrap">
+  <div class="pagehead">
+    <div>
+      <h1 id="pgTitle">Dashboard</h1>
+      <p id="pgSub">Fleet overview and action items</p>
+    </div>
+  </div>
+  <div class="subnav" id="subnav"></div>
+  <div id="view"></div>
+</div>
+
+<div class="ovl" id="ovl" onclick="if(event.target===this)UI.close()">
+  <div class="modal" id="modal">
+    <header><h3 id="mTitle">Title</h3><button class="x" onclick="UI.close()">&times;</button></header>
+    <div class="mbody" id="mBody"></div>
+    <footer id="mFoot"></footer>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="printArea"></div>
+<input type="file" id="hiddenFile" style="display:none">
+
+<script>
+"use strict";
+/* =====================================================================
+   NS FLEET — NAVI SHIPPING FLEET MANAGEMENT SYSTEM
+   Single-file, offline. Data stored in this browser (localStorage).
+   ===================================================================== */
+
+/* ---------------- Storage (dual: window.storage -> localStorage) ------ */
+var KEY = "NSFLEET_DB_V1";
+var DB = null;
+
+function blankDB(){
+  return {
+    meta:{created:new Date().toISOString(), counters:{}},
+    vessels:[], dailyreports:[],
+    crew:[], crewchange:[],
+    components:[], pmsjobs:[], defects:[],
+    requisitions:[],
+    drills:[], incidents:[], audits:[], findings:[],
+    certificates:[],
+    voyages:[],
+    bunkers:[], consumption:[], engines:[], fuellog:[]
+  };
+}
+function load(){
+  var raw=null;
+  try{ raw = localStorage.getItem(KEY); }catch(e){ raw=null; }
+  if(!raw){ DB = seed(blankDB()); save(); return; }
+  try{
+    DB = JSON.parse(raw);
+    var b=blankDB();
+    for(var k in b){ if(!DB[k]) DB[k]=b[k]; }
+    if(!DB.meta) DB.meta=b.meta;
+    if(!DB.meta.counters) DB.meta.counters={};
+    migrateFuel(); migrateEngineNames(); migrateTimes();
+  }catch(e){ DB = seed(blankDB()); }
+}
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(DB)); }
+  catch(e){ UI.toast("Storage is full. Export a backup, then remove old attachments."); }
+}
+/* engines encoded before the port/starboard naming are renamed in place */
+function migrateEngineNames(){
+  var map={"Main engine No.1":"Main engine (P)","Main engine No.2":"Main engine (S)",
+           "Auxiliary engine No.1":"Auxiliary engine No.1 (P)","Auxiliary engine No.2":"Auxiliary engine No.2 (S)",
+           "Auxiliary engine No.3":"Auxiliary engine No.3 (P)","Auxiliary engine No.4":"Auxiliary engine No.4 (S)"};
+  (DB.engines||[]).forEach(function(e){ if(map[e.unit]) e.unit=map[e.unit]; });
+  (DB.fuellog||[]).forEach(function(f){ (f.rows||[]).forEach(function(r){ if(map[r.unit]) r.unit=map[r.unit]; }); });
+}
+
+/* older flat consumption rows are carried into the per-engine log */
+function migrateFuel(){
+  if(!DB.consumption||!DB.consumption.length) return;
+  DB.consumption.forEach(function(c){
+    DB.fuellog.push({id:c.id||uid(),refNo:c.refNo||"FL-LEGACY",date:c.date,vessel:c.vessel,voyage:c.voyage||"",
+      rows:[{unit:"Main engine (P)",seaHrs:c.runHours||0,portHrs:0,used:c.fuelUsed||0}],
+      robEnd:c.robEnd||"",remarks:(c.remarks||"")+" (carried over from the earlier consumption log)",created:new Date().toISOString()});
+  });
+  DB.consumption=[];
+}
+/* military time: accepts 1200, 12:00, 930, 9 — returns "1200" or "" if not valid */
+function hhmm(v){
+  var d=String(v==null?"":v).replace(/[^0-9]/g,"");
+  if(!d) return "";
+  if(d.length===1||d.length===2) d=d.padStart(2,"0")+"00";
+  else if(d.length===3) d="0"+d;
+  else if(d.length>4) d=d.slice(0,4);
+  var h=parseInt(d.slice(0,2),10), m=parseInt(d.slice(2),10);
+  if(isNaN(h)||isNaN(m)||h>23||m>59) return "";
+  return String(h).padStart(2,"0")+String(m).padStart(2,"0");
+}
+/* times stored with a colon before the change to military format */
+function migrateTimes(){
+  (DB.fuellog||[]).forEach(function(r){ if(r.time) r.time=hhmm(r.time); });
+  (DB.bunkers||[]).forEach(function(b){ if(b.time) b.time=hhmm(b.time); });
+}
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function seq(name, prefix, pad){
+  var c = DB.meta.counters; c[name] = (c[name]||0)+1;
+  return prefix + String(c[name]).padStart(pad||4,"0");
+}
+
+/* ---------------- Small helpers -------------------------------------- */
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
+function today(){ var d=new Date(); return d.toISOString().slice(0,10); }
+function dmy(s){ if(!s) return ""; var p=String(s).slice(0,10).split("-"); if(p.length!==3) return s; return p[2]+"/"+p[1]+"/"+p[0]; }
+function days(from,to){ if(!from) return null; var a=new Date((to||today())+"T00:00:00"), b=new Date(String(from).slice(0,10)+"T00:00:00"); return Math.round((b-a)/86400000); }
+function num(v){ var n=parseFloat(v); return isNaN(n)?0:n; }
+function peso(v){ return "\u20B1"+num(v).toLocaleString("en-PH",{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function qty(v,d){ return num(v).toLocaleString("en-PH",{minimumFractionDigits:d||0,maximumFractionDigits:d||0}); }
+function byId(arr,id){ for(var i=0;i<arr.length;i++){ if(arr[i].id===id) return arr[i]; } return null; }
+function vesselName(id){ var v=byId(DB.vessels,id); return v?v.name:""; }
+function vesselOpts(){ return DB.vessels.slice().sort(function(a,b){return (a.name||"").localeCompare(b.name||"");}).map(function(v){return {v:v.id,l:v.name};}); }
+function sortBy(arr,key,desc){ return arr.slice().sort(function(a,b){ var x=a[key]||"", y=b[key]||""; if(x<y) return desc?1:-1; if(x>y) return desc?-1:1; return 0; }); }
+function auditLabel(id){
+  var a=byId(DB.audits,id); if(!a) return "";
+  return (a.refNo||"")+" · "+(a.type||"")+" · "+dmy(a.date);
+}
+function auditOpts(){
+  return sortBy(DB.audits||[],"date",true).map(function(a){ return {v:a.id,l:auditLabel(a.id)}; });
+}
+function pill(text,kind){ return '<span class="pill p-'+kind+'">'+esc(text)+'</span>'; }
+
+/* ---------------- UI primitives (iPad-safe: no native prompt/confirm) -- */
+var UI = {
+  _close:null,
+  open:function(title, bodyHTML, footHTML, size){
+    document.getElementById("mTitle").innerHTML = title;
+    document.getElementById("mBody").innerHTML = bodyHTML;
+    document.getElementById("mFoot").innerHTML = footHTML||'<button class="btn g" onclick="UI.close()">Close</button>';
+    var m=document.getElementById("modal"); m.className="modal"+(size?" "+size:"");
+    document.getElementById("ovl").classList.add("on");
+    document.getElementById("mBody").scrollTop=0;
+  },
+  close:function(){ document.getElementById("ovl").classList.remove("on"); if(UI._close){var f=UI._close;UI._close=null;f();} },
+  toast:function(msg){
+    var t=document.getElementById("toast"); t.textContent=msg; t.style.display="block";
+    clearTimeout(UI._tt); UI._tt=setTimeout(function(){t.style.display="none";},2600);
+  },
+  alert:function(msg,title){ UI.open(esc(title||"NS FLEET"),'<div style="font-size:14px;line-height:1.5">'+msg+'</div>','<button class="btn" onclick="UI.close()">OK</button>',"sm"); },
+  confirm:function(msg){
+    return new Promise(function(res){
+      UI.open("Please confirm",'<div style="font-size:14px;line-height:1.5">'+esc(msg)+'</div>',
+        '<button class="btn g" id="cNo">Cancel</button><button class="btn d" id="cYes">Yes, continue</button>',"sm");
+      document.getElementById("cNo").onclick=function(){UI.close();res(false);};
+      document.getElementById("cYes").onclick=function(){UI.close();res(true);};
+    });
+  },
+  pickFile:function(accept, cb){
+    var i=document.getElementById("hiddenFile");
+    i.value=""; i.accept=accept||"";
+    i.onchange=function(){ if(i.files&&i.files[0]) cb(i.files[0]); };
+    i.click();
+  }
+};
+
+/* ---------------- Reference lists ------------------------------------ */
+var VESSEL_TYPES=["Tugboat","Landing Craft Tank (LCT)","Barge","Speedboat / Motor Banca","Fast Craft","Passenger Vessel","Cargo Vessel","Dredger","Other"];
+var VESSEL_STATUS=["At Sea","In Port","At Anchor","Drydock","Under Repair","Idle / Standby","Laid-up"];
+var MGMT_TYPE=["Owned","Full Management","Crew Management Only","Technical Management Only","Time Chartered-in","Bareboat Chartered-in"];
+var RANKS=["Master","Chief Mate","Second Mate","Third Mate","Officer in Charge Navigational Watch","Chief Engineer","Second Engineer","Third Engineer","Officer in Charge Engineering Watch","Marine Diesel Mechanic","Boat Captain","Bosun","Able Seafarer Deck","Ordinary Seaman","Motorman","Oiler","Electrician","Cook / Steward","Messman","Deck Cadet","Engine Cadet"];
+var CREW_STATUS=["Onboard","On Leave","For Embarkation","Reliever Required","Separated"];
+var RESPONSIBLE=["Master","Chief Mate","Chief Engineer","Second Engineer","Boat Captain","DPA / HSQE Manager","Fleet Technical Manager","Technical Superintendent","Operations Manager","President","Shore Contractor"];
+var CRITICALITY=["Critical equipment","Non-critical"];
+var JOB_STATUS=["Planned","Due","Overdue","In progress","Completed","Postponed (approved)"];
+var DEFECT_STATUS=["Open","Under repair","Awaiting spares","Deferred (risk assessed)","Closed"];
+var SEVERITY=["Minor","Major","Critical"];
+var PROC_CAT=["Engine spares","Deck spares","Electrical","Lubricating oil","Safety / LSA-FFA","Provisions","Deck & engine stores","Chemicals & paints","Drydock / repair services","Third-party services"];
+var PROC_STATUS=["Requested","Under review","Approved","Purchase order issued","Partially delivered","Delivered","Cancelled"];
+var URGENCY=["Routine","Urgent","Vessel stopped / critical"];
+var DRILL_TYPES=["Abandon ship","Fire fighting","Man overboard","Enclosed space entry and rescue","Oil spill / SOPEP","Steering gear failure","Emergency towing","Grounding / stranding","Collision","Flooding / damage control","Blackout / emergency generator","Security (ISPS) drill","Medical emergency","Helicopter / evacuation"];
+var INCIDENT_TYPES=["Near miss","Non-conformity","Personal injury","Equipment failure","Pollution / spill","Hazardous occurrence","Cargo damage","Property damage","Security incident"];
+var INCIDENT_STATUS=["Reported","Under investigation","Corrective action in progress","Closed"];
+var AUDIT_TYPES=["Internal SMS audit (vessel)","Internal SMS audit (office)","Management review","External audit — MARINA / Recognized Organization","PCG inspection","MARINA inspection","PPA inspection","Charterer / vetting inspection","Navigational audit"];
+var FINDING_TYPES=["Major non-conformity","Non-conformity","Observation"];
+var FINDING_STATUS=["Open","Root cause identified","Corrective action in progress","Corrective action submitted","Verified and closed"];
+var AUDIT_STATUS=["Scheduled","In progress","Findings issued","Corrective action submitted","Closed"];
+var CERT_ISSUER=["MARINA","Philippine Coast Guard","PPA","Classification Society","Insurer / P&I","Radio regulator (NTC)","Company / Internal","Other"];
+var VESSEL_CERTS=["Certificate of Philippine Registry","Coastwise License","Certificate of Public Convenience (CPC)","Certificate of Inspection / Safety","Minimum Safe Manning Certificate","Safety Management Certificate (SMC)","Load Line Certificate","Tonnage Certificate","Ship Station Licence","Hull & Machinery Insurance","Protection & Indemnity / Third Party Liability","Oil Pollution Liability Insurance","SOPEP / Shipboard Oil Pollution Emergency Plan approval","Garbage Management Plan approval","Continuous Synopsis / Ship Particulars","Liferaft Servicing Certificate","Fire Extinguisher Servicing Certificate","EPIRB / Radio Survey","Drydocking Certificate","Class Survey Status"];
+var COMPANY_CERTS=["Document of Compliance (DOC)","MARINA Authority to Operate","Company Registration (SEC)","Business Permit","BIR Registration","Manning / Crewing Accreditation","PPA Accreditation","PCG Accreditation","Insurance — Office"];
+var CHARTER_TYPES=["Time charter","Voyage charter","Bareboat charter","Contract of affreightment","Own account / liner"];
+var VOYAGE_STATUS=["Planned","Loading","At sea","Discharging","Completed","Cancelled"];
+var FUEL_GRADES=["Marine diesel oil (MDO)","Marine gas oil (MGO)","Automotive diesel","Lubricating oil","Hydraulic oil","Grease"];
+var REPORT_TYPES=["Noon at sea","Noon in port","Departure report","Arrival report","SOSP — start of sea passage","EOSP — end of sea passage","Bunkering report"];
+var ENGINE_UNITS=["Main engine (P)","Main engine (S)","Auxiliary engine No.1 (P)","Auxiliary engine No.2 (S)","Auxiliary engine No.3 (P)","Auxiliary engine No.4 (S)"];
+var ENGINE_TAGS={"Main engine (P)":"ME (P)","Main engine (S)":"ME (S)","Auxiliary engine No.1 (P)":"AE1 (P)","Auxiliary engine No.2 (S)":"AE2 (S)","Auxiliary engine No.3 (P)":"AE3 (P)","Auxiliary engine No.4 (S)":"AE4 (S)"};
+var PORTS=["Manila (North Harbour)","Manila (South Harbour)","Harbour Centre, Tondo","Pasay / Navotas","Batangas","Bauan","Mabini","Calaca","Mariveles","Limay","Subic","Sual","Masinloc","Currimao","Legazpi","Tabaco","Romblon","Calapan","Puerto Princesa","El Nido","Coron","Iloilo","Bacolod","Dumaguete","Cebu","Tagbilaran","Ormoc","Tacloban","Surigao","Nasipit","Cagayan de Oro","Ozamiz","Iligan","Davao","General Santos","Zamboanga","Jolo","Bongao"];
+
+/* ---------------- Module + register schemas --------------------------- */
+/* field: k key, l label, t type(text|num|date|select|area|vessel|file|calc), opts, req, col(show in table), sec(section header) */
+
+var SCHEMAS = {
+
+ vessels:{
+  title:"Vessel register", sub:"Master particulars for every vessel under NAVI management.",
+  singular:"vessel", sort:"name", sortDesc:false,
+  fields:[
+   {k:"name",l:"Vessel name",t:"text",req:true,col:true},
+   {k:"type",l:"Vessel type",t:"select",opts:VESSEL_TYPES,req:true,col:true},
+   {k:"mgmt",l:"Management basis",t:"select",opts:MGMT_TYPE,col:true},
+   {k:"status",l:"Present status",t:"select",opts:VESSEL_STATUS,col:true},
+   {k:"owner",l:"Registered owner",t:"text"},
+   {k:"homePort",l:"Home port",t:"text",col:true},
+   {k:"marinaReg",l:"MARINA registration no.",t:"text"},
+   {k:"officialNo",l:"Official number",t:"text"},
+   {k:"callSign",l:"Call sign",t:"text"},
+   {k:"built",l:"Year built",t:"text"},
+   {k:"builder",l:"Builder",t:"text"},
+   {k:"flag",l:"Flag",t:"text",hint:"Philippines for all domestic vessels"},
+   {k:"_d",l:"Principal dimensions",t:"sec"},
+   {k:"grt",l:"Gross tonnage (GRT)",t:"num"},
+   {k:"nrt",l:"Net tonnage (NRT)",t:"num"},
+   {k:"dwt",l:"Deadweight (DWT)",t:"num"},
+   {k:"loa",l:"Length overall (m)",t:"num"},
+   {k:"breadth",l:"Breadth (m)",t:"num"},
+   {k:"depth",l:"Depth (m)",t:"num"},
+   {k:"draft",l:"Summer draft (m)",t:"num"},
+   {k:"_m",l:"Machinery",t:"sec"},
+   {k:"engineMake",l:"Main engine make / model",t:"text"},
+   {k:"enginePower",l:"Engine power (kW)",t:"num"},
+   {k:"engineHP",l:"Engine power (HP)",t:"num"},
+   {k:"gensets",l:"Generators",t:"text"},
+   {k:"_o",l:"Operations",t:"sec"},
+   {k:"tradeArea",l:"Trading area",t:"text",hint:"e.g. Philippine coastwise"},
+   {k:"manning",l:"Safe manning (persons)",t:"num"},
+   {k:"charterer",l:"Present charterer / client",t:"text",col:true},
+   {k:"remarks",l:"Remarks",t:"area"}
+  ]
+ },
+
+ dailyreports:{
+  title:"Daily vessel reports", sub:"Position, activity and remaining-on-board figures reported by the Master.",
+  singular:"daily report", sort:"date", sortDesc:true, auto:{k:"refNo",prefix:"DVR-",pad:5},
+  fields:[
+   {k:"refNo",l:"Report no.",t:"text",col:true,ro:true},
+   {k:"reportType",l:"Report type",t:"select",opts:REPORT_TYPES,req:true,col:true,def:function(){return "Noon at sea";}},
+   {k:"date",l:"Report date",t:"date",req:true,col:true,def:today},
+   {k:"vessel",l:"Vessel",t:"vessel",req:true,col:true},
+   {k:"status",l:"Status",t:"select",opts:VESSEL_STATUS,col:true},
+   {k:"location",l:"Position / location",t:"text",col:true},
+   {k:"activity",l:"Activity",t:"text",col:true},
+   {k:"cargo",l:"Cargo on board",t:"text"},
+   {k:"runHours",l:"Main engine running hours (24h)",t:"num"},
+   {k:"fuelROB",l:"Fuel ROB (litres)",t:"num",col:true},
+   {k:"luboilROB",l:"Lube oil ROB (litres)",t:"num"},
+   {k:"waterROB",l:"Fresh water ROB (litres)",t:"num"},
+   {k:"crewOnboard",l:"Crew on board",t:"num"},
+   {k:"weather",l:"Weather / sea state",t:"text"},
+   {k:"remarks",l:"Master's remarks",t:"area"},
+   {k:"reportedBy",l:"Reported by",t:"text"}
+  ]
+ },
+
+ crew:{
+  title:"Crew roster", sub:"Seafarers assigned across the managed fleet, with contract and document validity.",
+  singular:"crew member", sort:"name", auto:{k:"ccn",prefix:"CCN-",pad:5},
+  fields:[
+   {k:"ccn",l:"Crew control no.",t:"text",col:true,ro:true},
+   {k:"name",l:"Full name",t:"text",req:true,col:true,hint:"Surname, First name Middle name"},
+   {k:"rank",l:"Rank / position",t:"select",opts:RANKS,req:true,col:true},
+   {k:"vessel",l:"Assigned vessel",t:"vessel",col:true},
+   {k:"status",l:"Status",t:"select",opts:CREW_STATUS,col:true,def:function(){return "Onboard";}},
+   {k:"contact",l:"Contact number",t:"text"},
+   {k:"address",l:"Home address",t:"area"},
+   {k:"dob",l:"Date of birth",t:"date"},
+   {k:"_c",l:"Contract",t:"sec"},
+   {k:"signOn",l:"Sign-on date",t:"date",col:true},
+   {k:"contractEnd",l:"Contract end date",t:"date",col:true},
+   {k:"contractExp",l:"Contract",t:"calc",col:true,fn:function(r){return expiryPill(r.contractEnd,30);}},
+   {k:"reliever",l:"Nominated reliever",t:"text"},
+   {k:"_doc",l:"Statutory documents",t:"sec"},
+   {k:"sirbNo",l:"SIRB no.",t:"text"},
+   {k:"sirbExp",l:"SIRB expiry",t:"date"},
+   {k:"licenseNo",l:"MARINA licence / COP no.",t:"text"},
+   {k:"licenseExp",l:"Licence / COP expiry",t:"date"},
+   {k:"medicalExp",l:"Medical certificate expiry",t:"date"},
+   {k:"sidExp",l:"MARINA ID / SID expiry",t:"date"},
+   {k:"docExp",l:"Documents",t:"calc",col:true,fn:function(r){
+      var list=[["SIRB",r.sirbExp],["Licence",r.licenseExp],["Medical",r.medicalExp],["ID",r.sidExp]];
+      var worst=null,label="";
+      list.forEach(function(p){ if(!p[1])return; var d=days(p[1]); if(worst===null||d<worst){worst=d;label=p[0];} });
+      if(worst===null) return pill("Not recorded","neu");
+      if(worst<0) return pill(label+" expired","bad");
+      if(worst<=60) return pill(label+" in "+worst+"d","warn");
+      return pill("All valid","ok");
+   }},
+   {k:"_r",l:"Records",t:"sec"},
+   {k:"emgName",l:"Emergency contact — name",t:"text"},
+   {k:"emgRel",l:"Emergency contact — relationship",t:"text"},
+   {k:"emgContact",l:"Emergency contact — number",t:"text"},
+   {k:"remarks",l:"Remarks",t:"area"}
+  ]
+ },
+
+ crewchange:{
+  title:"Crew changes", sub:"Sign-on and sign-off log supporting the roster and payroll cut-off.",
+  singular:"crew change", sort:"date", sortDesc:true, auto:{k:"refNo",prefix:"CC-",pad:5},
+  fields:[
+   {k:"refNo",l:"Reference",t:"text",col:true,ro:true},
+   {k:"date",l:"Date",t:"date",req:true,col:true,def:today},
+   {k:"vessel",l:"Vessel",t:"vessel",req:true,col:true},
+   {k:"crewName",l:"Seafarer",t:"text",req:true,col:true},
+   {k:"rank",l:"Rank",t:"select",opts:RANKS,col:true},
+   {k:"movement",l:"Movement",t:"select",opts:["Sign on","Sign off — contract completed","Sign off — medical","Sign off — emergency","Sign off — disciplinary","Sign off — vessel off-hire"],req:true,col:true},
+   {k:"port",l:"Port",t:"text",list:PORTS,col:true,hint:"Type any port — the list is only a suggestion."},
+   {k:"relieverFor",l:"Reliever for / relieved by",t:"text"},
+   {k:"remarks",l:"Remarks",t:"area"}
+  ]
+ },
+
+ components:{
+  title:"Machinery and equipment register", sub:"Every component that carries a planned maintenance job.",
+  singular:"component", sort:"code",
+  fields:[
+   {k:"code",l:"Component code",t:"text",req:true,col:true,hint:"e.g. ME-01, AUX-02, DK-05"},
+   {k:"name",l:"Component",t:"text",req:true,col:true},
+   {k:"vessel",l:"Vessel",t:"vessel",req:true,col:true},
+   {k:"location",l:"Location on board",t:"text",col:true},
+   {k:"maker",l:"Maker",t:"text",col:true},
+   {k:"model",l:"Model / type",t:"text"},
+   {k:"serial",l:"Serial no.",t:"text"},
+   {k:"criticality",l:"Criticality",t:"select",opts:CRITICALITY,col:true,def:function(){return "Non-critical";}},
+   {k:"runHours",l:"Present running hours",t:"num",col:true},
+   {k:"hoursDate",l:"Hours counted as of",t:"date"},
+   {k:"manualRef",l:"Maker's manual reference",t:"text",hint:"Section / page relied on for the maintenance interval"},
+   {k:"remarks",l:"Remarks",t:"area"}
+  ]
+ },
+
+ pmsjobs:{
+  title:"Planned maintenance jobs", sub:"Maintenance intervals drawn from the maker's manual and company procedure.",
+  singular:"maintenance job", sort:"dueDate", auto:{k:"jobNo",prefix:"PMS-",pad:5},
+  fields:[
+   {k:"jobNo",l:"Job no.",t:"text",col:true,ro:true},
+   {k:"vessel",l:"Vessel",t:"vessel",req:true,col:true},
+   {k:"component",l:"Component",t:"text",req:true,col:true},
+   {k:"job",l:"Maintenance job",t:"text",req:true,col:true},
+   {k:"basis",l:"Interval basis",t:"select",opts:["Calendar","Running hours"],req:true,def:function(){return "Calendar";}},
+   {k:"intervalDays",l:"Interval (days)",t:"num",hint:"Use when the basis is calendar"},
+   {k:"intervalHours",l:"Interval (running hours)",t:"num",hint:"Use when the basis is running hours"},
+   {k:"lastDone",l:"Last carried out",t:"date",col:true},
+   {k:"lastHours",l:"Running hours at last job",t:"num"},
+   {k:"dueDate",l:"Next due date",t:"date",col:true},
+   {k:"dueHours",l:"Next due at running hours",t:"num"},
+   {k:"state",l:"Standing",t:"calc",col:true,fn:function(r){
+      if(r.status==="Completed") return pill("Completed","ok");
+      if(r.status==="Postponed (approved)") return pill("Postponed","info");
+      return expiryPill(r.dueDate,14,"Overdue","Due");
+   }},
+   {k:"criticality",l:"Criticality",t:"select",opts:CRITICALITY,col:true,def:function(){return "Non-critical";}},
+   {k:"responsible",l:"Responsible",t:"select",opts:RESPONSIBLE,col:true},
+   {k:"status",l:"Job status",t:"select",opts:JOB_STATUS,def:function(){return "Planned";}},
+   {k:"manualRef",l:"Maker's manual reference",t:"text"},
+   {k:"sparesNeeded",l:"Spares required",t:"text"},
+   {k:"workDone",l:"Work carried out",t:"area"},
+   {k:"remarks",l:"Remarks",t:"area"}
+  ]
+ },
+
+ defects:{
+  title:"Defects and repairs", sub:"Breakdowns, damages and outstanding repair items across the fleet.",
+  singular:"defect", sort:"reported", sortDesc:true, auto:{k:"refNo",prefix:"DEF-",pad:5},
+  fields:[
+   {k:"refNo",l:"Defect no.",t:"text",col:true,ro:true},
+   {k:"vessel",l:"Vessel",t:"vessel",req:true,col:true},
+   {k:"equipment",l:"Equipment affected",t:"text",req:true,col:true},
+   {k:"description",l:"Description of defect",t:"area",req:true},
+   {k:"reported",l:"Date reported",t:"date",req:true,col:true,def:today},
+   {k:"reportedBy",l:"Reported by",t:"text"},
+   {k:"severity",l:"Severity",t:"select",opts:SEVERITY,col:true,def:function(){return "Minor";}},
+   {k:"affectsClass",l:"Affects certification or class?",t:"select",opts:["No","Yes — reported to MARINA / PCG","Yes — reported to Class","Yes — reported to Class and Administration"],def:function(){return "No";}},
+   {k:"riskControl",l:"Interim risk control measure",t:"area"},
+   {k:"targetDate",l:"Target completion",t:"date",col:true},
+   {k:"status",l:"Status",t:"select",opts:DEFECT_STATUS,col:true,def:function(){return "Open";}},
+   {k:"repairBy",l:"Repair carried out by",t:"text"},
+   {k:"closedDate",l:"Date closed",t:"date"},
+   {k:"cost",l:"Repair cost (PHP)",t:"num"},
+   {k:"remarks",l:"Remarks",t:"area"}
+  ]
+ },
+
+ requisitions:{
+  title:"Requisitions and purchase orders", sub:"Vessel requisitions from request through delivery on board.",
+  singular:"requisition", sort:"date", sortDesc:true, auto:{k:"reqNo",prefix:"REQ-",pad:5},
+  fields:[
+   {k:"reqNo",l:"Requisition no.",t:"text",col:true,ro:true},
+   {k:"date",l:"Date requested",t:"date",req:true,col:true,def:today},
+   {k:"vessel",l:"Vessel",t:"vessel",req:true,col:true},
+   {k:"category",l:"Category",t:"select",opts:PROC_CAT,req:true,col:true},
+   {k:"item",l:"Item / description",t:"area",req:true,col:true},
+   {k:"quantity",l:"Quantity",t:"num",col:true},
+   {k:"unit",l:"Unit",t:"text",hint:"pcs, set, litres, kg"},
+   {k:"urgency",l:"Urgency",t:"select",opts:URGENCY,col:true,def:function(){return "Routine";}},
+   {k:"linkedJob",l:"Related maintenance job / defect",t:"text"},
+   {k:"requestedBy",l:"Requested by",t:"text"},
+   {k:"_s",l:"Supply",t:"sec"},
+   {k:"supplier",l:"Supplier",t:"text",col:true},
+   {k:"poNo",l:"Purchase order no.",t:"text"},
+   {k:"estCost",l:"Estimated cost (PHP)",t:"num"},
+   {k:"actualCost",l:"Actual cost (PHP)",t:"num",col:true},
+   {k:"status",l:"Status",t:"select",opts:PROC_STATUS,col:true,def:function(){return "Requested";}},
+   {k:"approvedBy",l:"Approved by",t:"select",opts:RESPONSIBLE},
+   {k:"deliveryPort",l:"Delivery port",t:"text",list:PORTS,hint:"Type any port or place of delivery."},
+   {k:"deliveredDate",l:"Date delivered on board",t:"date"},
+   {k:"remarks",l:"Remarks",t:"area"}
+  ]
+ },
+
+ drills:{
+  title:"Drills and training", sub:"Shipboard drills recorded against the intervals in the Safety Management System.",
+  singular:"drill record", sort:"date", sortDesc:true, auto:{k:"refNo",prefix:"DR-",pad:5},
+  fields:[
+   {k:"refNo",l:"Record no.",t:"text",col:true,ro:true},
+   {k:"date",l:"Date conducted",t:"date",req:true,col:true,def:today},
+   {k:"vessel",l:"Vessel",t:"vessel",req:true,col:true},
+   {k:"drill",l:"Drill / training",t:"select",opts:DRILL_TYPES,req:true,col:true},
+   {k:"scenario",l:"Scenario used",t:"text"},
+   {k:"participants",l:"Participants",t:"num",col:true},
+   {k:"duration",l:"Duration (minutes)",t:"num"},
+   {k:"conductedBy",l:"Conducted by",t:"text",col:true},
+   {k:"equipment",l:"Equipment used",t:"text"},
+   {k:"deficiencies",l:"Deficiencies observed",t:"area"},
+   {k:"actions",l:"Action taken",t:"area"},
+   {k:"nextDue",l:"Next due",t:"date",col:true},
+   {k:"due",l:"Standing",t:"calc",col:true,fn:function(r){ return expiryPill(r.nextDue,7,"Overdue","Due"); }}
+  ]
+ },
+
+ incidents:{
+  title:"Incidents, near misses and non-conformities", sub:"Reports raised under the Safety Management System and tracked to close-out.",
+  singular:"report", sort:"date", sortDesc:true, auto:{k:"refNo",prefix:"SR-",pad:5},
+  fields:[
+   {k:"refNo",l:"Report no.",t:"text",col:true,ro:true},
+   {k:"date",l:"Date of occurrence",t:"date",req:true,col:true,def:today},
+   {k:"vessel",l:"Vessel / location",t:"vessel",col:true},
+   {k:"type",l:"Type",t:"select",opts:INCIDENT_TYPES,req:true,col:true},
+   {k:"severity",l:"Severity",t:"select",opts:SEVERITY,col:true,def:function(){return "Minor";}},
+   {k:"title",l:"Short title",t:"text",req:true,col:true},
+   {k:"description",l:"What happened",t:"area",req:true},
+   {k:"immediate",l:"Immediate action taken",t:"area"},
+   {k:"rootCause",l:"Root cause",t:"area"},
+   {k:"corrective",l:"Corrective action",t:"area"},
+   {k:"preventive",l:"Preventive action",t:"area"},
+   {k:"reportedBy",l:"Reported by",t:"text"},
+   {k:"dpaNotified",l:"DPA notified",t:"select",opts:["Yes","No","Not required"],col:true,def:function(){return "Yes";}},
+   {k:"authority",l:"Reported to authority",t:"select",opts:["Not required","Philippine Coast Guard","MARINA","PPA","PCG and MARINA","Insurer / P&I"],def:function(){return "Not required";}},
+   {k:"targetDate",l:"Target close-out",t:"date",col:true},
+   {k:"status",l:"Status",t:"select",opts:INCIDENT_STATUS,col:true,def:function(){return "Reported";}},
+   {k:"closedDate",l:"Date closed",t:"date"}
+  ]
+ },
+
+ audits:{
+  title:"Audits and inspections", sub:"Internal audits, management review and external inspections, their findings and when the next one falls due.",
+  singular:"audit", sort:"date", sortDesc:true, auto:{k:"refNo",prefix:"AUD-",pad:4},
+  after:function(){ Audit.open(); },
+  fields:[
+   {k:"refNo",l:"Reference",t:"text",col:true,ro:true},
+   {k:"date",l:"Date",t:"date",req:true,col:true,def:today,on:"Audit.calc()"},
+   {k:"type",l:"Type",t:"select",opts:AUDIT_TYPES,req:true,col:true,on:"Audit.calc()"},
+   {k:"vessel",l:"Vessel (leave blank for office)",t:"vessel",col:true},
+   {k:"auditor",l:"Auditor / inspector",t:"text",col:true},
+   {k:"scope",l:"Scope",t:"area"},
+   {k:"ncr",l:"Non-conformities raised",t:"num",col:true,hint:"The total stated on the audit report. Log each one below so it can be tracked to close-out."},
+   {k:"observations",l:"Observations raised",t:"num",col:true},
+   {k:"logged",l:"Findings logged",t:"calc",col:true,fn:function(r){
+      var f=(DB.findings||[]).filter(function(x){return x.audit===r.id;});
+      var open=f.filter(function(x){return x.status!=="Verified and closed";}).length;
+      var stated=num(r.ncr)+num(r.observations);
+      if(!f.length) return stated? pill("0 of "+stated+" logged","warn") : pill("none","neu");
+      var txt=f.length+(stated&&stated!==f.length?" of "+stated:"")+" logged";
+      return pill(txt+(open?", "+open+" open":", all closed"), open?"warn":"ok");
+   }},
+   {k:"findings",l:"Findings",t:"area"},
+   {k:"correctiveAction",l:"Corrective action",t:"area"},
+   {k:"targetDate",l:"Target close-out",t:"date",col:true},
+   {k:"status",l:"Status",t:"select",opts:AUDIT_STATUS,col:true,def:function(){return "Scheduled";}},
+   {k:"closedDate",l:"Date closed",t:"date"},
+   {k:"_n",l:"Next audit",t:"sec"},
+   {k:"intervalMonths",l:"Interval to next audit (months)",t:"num",def:function(){return 12;},on:"Audit.calc()",
+     hint:"Internal audits must not exceed twelve months between them. Set 0 for a one-off inspection that does not recur."},
+   {k:"nextDue",l:"Next audit due",t:"date",col:true,on:"Audit.touch()",hint:"Worked out from the date above. Type over it if the plan differs."},
+   {k:"standing",l:"Next audit",t:"calc",col:true,fn:function(r){
+      if(!r.nextDue) return pill("Not scheduled","neu");
+      return expiryPill(r.nextDue,60,"Overdue","Due");
+   }},
+   {k:"file",l:"Audit report attachment",t:"file"}
+  ]
+ },
+
+ findings:{
+  title:"Audit findings and corrective actions", sub:"Each non-conformity and observation tracked on its own, from raising to verified close-out.",
+  singular:"finding", sort:"targetDate", auto:{k:"refNo",prefix:"NCR-",pad:4},
+  fields:[
+   {k:"refNo",l:"Finding no.",t:"text",col:true,ro:true},
+   {k:"audit",l:"Raised at audit",t:"audit",req:true,col:true},
+   {k:"vessel",l:"Vessel (leave blank for office)",t:"vessel",col:true},
+   {k:"category",l:"Category",t:"select",opts:FINDING_TYPES,req:true,col:true,def:function(){return "Non-conformity";}},
+   {k:"clause",l:"Reference",t:"text",col:true,hint:"ISM Code element, NSM section, company procedure or regulation breached"},
+   {k:"description",l:"Statement of the finding",t:"area",req:true,col:true},
+   {k:"objectiveEvidence",l:"Objective evidence",t:"area"},
+   {k:"raisedBy",l:"Raised by",t:"text"},
+   {k:"_c",l:"Corrective action",t:"sec"},
+   {k:"immediate",l:"Immediate / containment action",t:"area"},
+   {k:"rootCause",l:"Root cause",t:"area"},
+   {k:"correctiveAction",l:"Corrective action",t:"area"},
+   {k:"preventiveAction",l:"Preventive action",t:"area"},
+   {k:"responsible",l:"Responsible",t:"select",opts:RESPONSIBLE,col:true},
+   {k:"targetDate",l:"Target close-out",t:"date",col:true},
+   {k:"standing",l:"Standing",t:"calc",col:true,fn:function(r){
+      if(r.status==="Verified and closed") return pill("Closed","ok");
+      if(!r.targetDate) return pill("No target date","neu");
+      return expiryPill(r.targetDate,14,"Overdue","Due");
+   }},
+   {k:"status",l:"Status",t:"select",opts:FINDING_STATUS,col:true,def:function(){return "Open";}},
+   {k:"_v",l:"Close-out",t:"sec"},
+   {k:"evidenceOfClosure",l:"Evidence of close-out",t:"area"},
+   {k:"verifiedBy",l:"Verified by",t:"select",opts:RESPONSIBLE},
+   {k:"closedDate",l:"Date closed",t:"date"},
+   {k:"file",l:"Attachment",t:"file"}
+  ]
+ },
+
+ certificates:{
+  title:"Certificates and licences", sub:"Statutory and company certificates with their validity and survey windows.",
+  singular:"certificate", sort:"expiry",
+  fields:[
+   {k:"holder",l:"Held by",t:"select",opts:["Vessel","Company"],req:true,col:true,def:function(){return "Vessel";}},
+   {k:"vessel",l:"Vessel",t:"vessel",col:true,hint:"Leave blank for company certificates"},
+   {k:"name",l:"Certificate / licence",t:"text",req:true,col:true,list:VESSEL_CERTS.concat(COMPANY_CERTS)},
+   {k:"certNo",l:"Certificate no.",t:"text",col:true},
+   {k:"issuer",l:"Issued by",t:"select",opts:CERT_ISSUER,col:true},
+   {k:"issued",l:"Date issued",t:"date",col:true},
+   {k:"expiry",l:"Date of expiry",t:"date",col:true},
+   {k:"state",l:"Validity",t:"calc",col:true,fn:function(r){ return expiryPill(r.expiry,60); }},
+   {k:"surveyDue",l:"Next endorsement / survey due",t:"date",col:true},
+   {k:"renewalOwner",l:"Renewal handled by",t:"select",opts:RESPONSIBLE},
+   {k:"file",l:"Scanned certificate",t:"file"},
+   {k:"remarks",l:"Remarks",t:"area"}
+  ]
+ },
+
+ voyages:{
+  title:"Voyages and employment", sub:"Voyage record with passage times, distance, speed and voyage result.",
+  singular:"voyage", sort:"atd", sortDesc:true, auto:{k:"voyageNo",prefix:"VOY-",pad:5},
+  after:function(){ Voyage.calc(); },
+  fields:[
+   {k:"voyageNo",l:"Voyage no.",t:"text",col:true,ro:true},
+   {k:"vessel",l:"Vessel",t:"vessel",req:true,col:true},
+   {k:"charterType",l:"Employment",t:"select",opts:CHARTER_TYPES,req:true,col:true},
+   {k:"charterer",l:"Charterer / client",t:"text",col:true},
+   {k:"cargo",l:"Cargo",t:"text",col:true},
+   {k:"cargoQty",l:"Cargo quantity",t:"text"},
+   {k:"loadPort",l:"Load port",t:"text",list:PORTS,col:true,hint:"Type any port, pier or anchorage."},
+   {k:"dischPort",l:"Discharge port",t:"text",list:PORTS,col:true,hint:"Type any port, pier or anchorage."},
+   {k:"laycanFrom",l:"Laycan from",t:"date"},
+   {k:"laycanTo",l:"Laycan to",t:"date"},
+   {k:"_p",l:"Passage",t:"sec"},
+   {k:"atd",l:"Departed (ATD) — date",t:"date",col:true,on:"Voyage.calc()"},
+   {k:"atdTime",l:"ATD time",t:"time",on:"Voyage.calc()"},
+   {k:"ata",l:"Arrived (ATA) — date",t:"date",col:true,on:"Voyage.calc()"},
+   {k:"ataTime",l:"ATA time",t:"time",on:"Voyage.calc()"},
+   {k:"elapsed",l:"Total elapsed time (hours)",t:"ro",hint:"Worked out from ATD to ATA."},
+   {k:"stopHours",l:"Time stopped, drifting or at anchor (hours)",t:"num",on:"Voyage.calc()",hint:"Deducted from the elapsed time to give steaming time. Leave blank if none."},
+   {k:"steamHours",l:"Steaming time (hours)",t:"ro",col:true},
+   {k:"distance",l:"Distance (nautical miles)",t:"num",col:true,on:"Voyage.calc('distance')",focus:"Voyage.driver('distance')",hint:"Enter the distance and the speed is worked out. Leave it blank and enter the speed instead to get the distance."},
+   {k:"speed",l:"Average speed (knots)",t:"num",col:true,on:"Voyage.calc('speed')",focus:"Voyage.driver('speed')"},
+   {k:"passageNote",l:"Passage check",t:"ro"},
+   {k:"_f",l:"Voyage result",t:"sec"},
+   {k:"revenue",l:"Freight / hire earned (PHP)",t:"num",col:true},
+   {k:"fuelCost",l:"Fuel cost (PHP)",t:"num"},
+   {k:"portCharges",l:"Port charges (PHP)",t:"num"},
+   {k:"otherCost",l:"Other voyage costs (PHP)",t:"num"},
+   {k:"net",l:"Voyage result",t:"calc",col:true,fn:function(r){
+      var n=num(r.revenue)-num(r.fuelCost)-num(r.portCharges)-num(r.otherCost);
+      return '<b style="color:'+(n<0?"#b3261e":"#1a7f4b")+'">'+peso(n)+'</b>';
+   }},
+   {k:"status",l:"Status",t:"select",opts:VOYAGE_STATUS,col:true,def:function(){return "Planned";}},
+   {k:"remarks",l:"Remarks",t:"area"}
+  ]
+ },
+
+ bunkers:{
+  title:"Bunkering records", sub:"Fuel and lube oil taken on board, with delivery note reference.",
+  singular:"bunkering", sort:"date", sortDesc:true, auto:{k:"refNo",prefix:"BNK-",pad:5},
+  fields:[
+   {k:"refNo",l:"Reference",t:"text",col:true,ro:true},
+   {k:"date",l:"Date",t:"date",req:true,col:true,def:today},
+   {k:"time",l:"Time completed",t:"time",col:true,hint:"Ship's time, 24-hour (e.g. 1500). The ROB lands in the first report encoded after this time."},
+   {k:"vessel",l:"Vessel",t:"vessel",req:true,col:true},
+   {k:"grade",l:"Grade",t:"select",opts:FUEL_GRADES,req:true,col:true,def:function(){return "Marine diesel oil (MDO)";}},
+   {k:"port",l:"Port / place",t:"text",list:PORTS,col:true,hint:"Type any port, pier or anchorage — the list is only a suggestion."},
+   {k:"supplier",l:"Supplier",t:"text",col:true},
+   {k:"bdn",l:"Bunker delivery note no.",t:"text"},
+   {k:"litres",l:"Quantity (litres)",t:"num",req:true,col:true},
+   {k:"price",l:"Price per litre (PHP)",t:"num",col:true},
+   {k:"total",l:"Total cost",t:"calc",col:true,fn:function(r){ return peso(num(r.litres)*num(r.price)); }},
+   {k:"robAfter",l:"ROB after bunkering (litres)",t:"num"},
+   {k:"receivedBy",l:"Received by",t:"text"},
+   {k:"remarks",l:"Remarks",t:"area"}
+  ]
+ },
+
+ engines:{
+  title:"Engine register", sub:"Declared fuel consumption per engine — the standard every daily report is checked against.",
+  singular:"engine", sort:"unit",
+  validate:function(rec,id){
+    var clash=(DB.engines||[]).filter(function(e){ return e.vessel===rec.vessel && e.unit===rec.unit && e.id!==id; });
+    if(clash.length) return "<b>"+esc(rec.unit)+"</b> is already registered for "+esc(vesselName(rec.vessel))+". Edit that record instead, or choose another engine number.";
+    return null;
+  },
+  fields:[
+   {k:"vessel",l:"Vessel",t:"vessel",req:true,col:true},
+   {k:"unit",l:"Engine",t:"select",opts:ENGINE_UNITS,req:true,col:true,hint:"Two main engines and four auxiliaries per vessel, port (P) and starboard (S)"},
+   {k:"maker",l:"Maker",t:"text",col:true},
+   {k:"model",l:"Model / type",t:"text",col:true},
+   {k:"serial",l:"Serial no.",t:"text"},
+   {k:"powerKW",l:"Rated power (kW)",t:"num"},
+   {k:"powerHP",l:"Rated power (HP)",t:"num"},
+   {k:"_r",l:"Declared consumption",t:"sec"},
+   {k:"rateSea",l:"Rate at sea (litres per hour)",t:"num",req:true,col:true,hint:"Maker's figure or the rate agreed with the charterer"},
+   {k:"ratePort",l:"Rate in port (litres per hour)",t:"num",col:true,hint:"Manoeuvring, idling or alongside. Enter 0 if the engine is stopped in port."},
+   {k:"tolerance",l:"Tolerance (%)",t:"num",col:true,def:function(){return 10;},hint:"A daily report outside this band is flagged. Ten per cent is the usual allowance."},
+   {k:"runHours",l:"Present running hours",t:"num"},
+   {k:"manualRef",l:"Maker's manual reference",t:"text"},
+   {k:"remarks",l:"Remarks",t:"area"}
+  ]
+ }
+};
+
+function expiryPill(dateStr, warnDays, badLabel, warnLabel){
+  if(!dateStr) return pill("Not set","neu");
+  var d=days(dateStr);
+  if(d<0) return pill((badLabel||"Expired")+" "+Math.abs(d)+"d","bad");
+  if(d<=(warnDays||30)) return pill((warnLabel||"Expires")+" in "+d+"d","warn");
+  return pill(d+" days left","ok");
+}
+
+/* ---------------- Modules ------------------------------------------- */
+var MODULES=[
+ {id:"dashboard",  label:"Dashboard",           title:"Dashboard",            sub:"Fleet overview and action items"},
+ {id:"fleet",      label:"Fleet Operations",    title:"Fleet Operations",     sub:"Vessel particulars, status board and daily reporting",
+   tabs:[{id:"vessels",l:"Vessels"},{id:"dailyreports",l:"Daily reports"},{id:"statusboard",l:"Status board"}]},
+ {id:"crewmgmt",   label:"Crew Management",     title:"Crew Management",      sub:"Roster, contracts, document validity and crew changes",
+   tabs:[{id:"crew",l:"Crew roster"},{id:"crewchange",l:"Crew changes"},{id:"manning",l:"Manning by vessel"}]},
+ {id:"pms",        label:"PMS / Maintenance",   title:"Planned Maintenance",  sub:"Machinery register, maintenance intervals and outstanding defects",
+   tabs:[{id:"pmsjobs",l:"Maintenance jobs"},{id:"components",l:"Machinery register"},{id:"defects",l:"Defects and repairs"}]},
+ {id:"procurement",label:"Procurement",         title:"Procurement",          sub:"Requisitions, purchase orders and delivery on board",
+   tabs:[{id:"requisitions",l:"Requisitions"},{id:"spend",l:"Spend summary"}]},
+ {id:"safety",     label:"Safety & ISM",        title:"Safety and ISM",       sub:"Drills, incident reporting and audit close-out under the Safety Management System",
+   tabs:[{id:"drills",l:"Drills"},{id:"incidents",l:"Incidents / near miss"},{id:"audits",l:"Audits & inspections"},{id:"findings",l:"Findings / CARs"},{id:"ismstatus",l:"Drill compliance"}]},
+ {id:"certs",      label:"Certificates",        title:"Certificates and Licences", sub:"Vessel and company certificate validity, surveys and renewals",
+   tabs:[{id:"certificates",l:"All certificates"},{id:"expiry",l:"Renewal plan"}]},
+ {id:"voyage",     label:"Voyage Management",   title:"Voyage Management",    sub:"Employment, voyage record and voyage result",
+   tabs:[{id:"voyages",l:"Voyages"},{id:"voyresult",l:"Voyage results"}]},
+ {id:"fuel",       label:"Fuel Management",     title:"Fuel Management",      sub:"Bunkering, consumption and efficiency by vessel",
+   tabs:[{id:"engines",l:"Engine register"},{id:"fuellog",l:"Daily consumption"},{id:"variance",l:"Variance report"},{id:"bunkers",l:"Bunkering"},{id:"fuelsummary",l:"Fuel summary"}]},
+ {id:"reports",    label:"Reports & Analytics", title:"Reports and Analytics",sub:"Printable fleet reports for owners, clients and regulators"}
+];
+
+/* ---------------- Application shell ---------------------------------- */
+var App={
+  mod:"dashboard", tab:null, filter:{q:"",vessel:""},
+
+  start:function(){
+    load();
+    document.getElementById("logoMark").innerHTML=logoSVG();
+    setFavicon();
+    var nav=document.getElementById("modnav");
+    nav.innerHTML=MODULES.map(function(m){return '<button data-m="'+m.id+'" onclick="App.go(\''+m.id+'\')">'+esc(m.label)+'</button>';}).join("");
+    App.go("dashboard");
+  },
+
+  go:function(mod,tab){
+    App.mod=mod;
+    var m=App.module();
+    App.tab = tab || (m.tabs? m.tabs[0].id : null);
+    App.filter={q:"",vessel:""};
+    document.getElementById("pgTitle").textContent=m.title;
+    document.getElementById("pgSub").textContent=m.sub;
+    var btns=document.querySelectorAll("#modnav button");
+    for(var i=0;i<btns.length;i++){ btns[i].className = btns[i].getAttribute("data-m")===mod?"on":""; }
+    var sn=document.getElementById("subnav");
+    sn.innerHTML = m.tabs? m.tabs.map(function(t){return '<button class="'+(t.id===App.tab?"on":"")+'" onclick="App.go(\''+mod+'\',\''+t.id+'\')">'+esc(t.l)+'</button>';}).join("") : "";
+    window.scrollTo(0,0);
+    App.render();
+  },
+
+  module:function(){ for(var i=0;i<MODULES.length;i++){ if(MODULES[i].id===App.mod) return MODULES[i]; } return MODULES[0]; },
+
+  render:function(){
+    var v=document.getElementById("view");
+    if(App.mod==="dashboard") return void(v.innerHTML=Views.dashboard());
+    if(App.mod==="reports")   return void(v.innerHTML=Views.reports());
+    if(App.tab==="fuellog")   return void(v.innerHTML=FuelLog.view());
+    if(App.tab==="variance")  return void(v.innerHTML=FuelLog.varianceView());
+    if(SCHEMAS[App.tab])      return void(v.innerHTML=Register.view(App.tab));
+    if(Views[App.tab])        return void(v.innerHTML=Views[App.tab]());
+    v.innerHTML='<div class="card"><div class="empty">Nothing to show here yet.</div></div>';
+    App.refreshAlertBadge();
+  },
+
+  refreshAlertBadge:function(){
+    var n=Alerts.all().length, b=document.getElementById("alertBtn");
+    b.textContent = n? ("Alerts ("+n+")") : "Alerts";
+    b.className = "tb"+(n?" warnbtn":"");
+  },
+
+  backup:function(){
+    var blob=new Blob([JSON.stringify(DB,null,2)],{type:"application/json"});
+    var url=URL.createObjectURL(blob), a=document.createElement("a");
+    a.href=url; a.download="NS-FLEET-backup-"+today()+".json"; document.body.appendChild(a); a.click();
+    setTimeout(function(){URL.revokeObjectURL(url);a.remove();},1500);
+    UI.open("Back up data",
+      '<p>A file named <b>NS-FLEET-backup-'+today()+'.json</b> has been prepared.</p>'+
+      '<p style="font-size:13px;color:#5d7480">On iPad, if nothing downloaded, use the button below and choose <b>Save to Files</b> from the share sheet.</p>'+
+      '<p><a class="btn" style="text-decoration:none;display:inline-block" href="'+url+'" download="NS-FLEET-backup-'+today()+'.json">Save backup file</a></p>',
+      '<button class="btn g" onclick="UI.close()">Done</button>',"sm");
+  },
+
+  restore:function(){
+    UI.pickFile(".json,application/json",function(file){
+      var r=new FileReader();
+      r.onload=function(){
+        try{
+          var d=JSON.parse(r.result);
+          if(!d.vessels&&!d.crew) throw new Error("not NS FLEET");
+          UI.confirm("Restoring replaces everything currently stored in this browser. Continue?").then(function(ok){
+            if(!ok) return;
+            var b=blankDB(); for(var k in b){ if(!d[k]) d[k]=b[k]; }
+            if(!d.meta) d.meta=b.meta; if(!d.meta.counters) d.meta.counters={};
+            DB=d; save(); App.go(App.mod); UI.toast("Data restored");
+          });
+        }catch(e){ UI.alert("That file could not be read as an NS FLEET backup. Choose the .json file created by <b>Back up data</b>."); }
+      };
+      r.readAsText(file);
+    });
+  }
+};
+
+/* ---------------- Generic register engine ---------------------------- */
+var Register={
+
+  rows:function(key){
+    var s=SCHEMAS[key], data=DB[key]||[];
+    var q=(App.filter.q||"").toLowerCase(), vf=App.filter.vessel;
+    var out=data.filter(function(r){
+      if(vf && r.vessel!==vf) return false;
+      if(!q) return true;
+      var hay="";
+      for(var k in r){ var val=r[k]; if(typeof val==="string"||typeof val==="number") hay+=" "+val; }
+      hay+=" "+vesselName(r.vessel);
+      return hay.toLowerCase().indexOf(q)>=0;
+    });
+    return sortBy(out, s.sort||"id", !!s.sortDesc);
+  },
+
+  hasVessel:function(key){ return SCHEMAS[key].fields.some(function(f){return f.k==="vessel";}); },
+
+  view:function(key){
+    var s=SCHEMAS[key], rows=Register.rows(key);
+    var cols=s.fields.filter(function(f){return f.col;});
+    var h='<div class="card">';
+    h+='<h2>'+esc(s.title)+'<span class="r">'+
+        '<button class="btn sm o" onclick="Register.form(\''+key+'\')">Add '+esc(s.singular)+'</button>'+
+        '<button class="btn sm g" onclick="Register.csv(\''+key+'\')">Export CSV</button>'+
+        '<button class="btn sm g" onclick="Register.print(\''+key+'\')">Print</button>'+
+        (key==="crew"?'<button class="btn sm g" onclick="Register.importCrew()">Import crew file</button>':'')+
+       '</span></h2>';
+    h+='<div class="toolbar">';
+    h+='<input type="text" class="grow" placeholder="Search '+esc(s.title.toLowerCase())+'" value="'+esc(App.filter.q)+'" oninput="App.filter.q=this.value;Register.refresh(\''+key+'\')">';
+    if(Register.hasVessel(key)){
+      h+='<select onchange="App.filter.vessel=this.value;Register.refresh(\''+key+'\')"><option value="">All vessels</option>'+
+         vesselOpts().map(function(o){return '<option value="'+o.v+'"'+(App.filter.vessel===o.v?" selected":"")+'>'+esc(o.l)+'</option>';}).join("")+'</select>';
+    }
+    h+='<span style="color:#5d7480;font-size:12.5px" id="cnt-'+key+'">'+rows.length+' record'+(rows.length===1?"":"s")+'</span>';
+    h+='</div><div class="body tight" id="tbl-'+key+'">'+Register.table(key,rows,cols)+'</div></div>';
+    h+='<p style="font-size:12px;color:#5d7480;margin:0 2px 20px">'+esc(s.sub)+'</p>';
+    setTimeout(App.refreshAlertBadge,0);
+    return h;
+  },
+
+  refresh:function(key){
+    var rows=Register.rows(key), cols=SCHEMAS[key].fields.filter(function(f){return f.col;});
+    document.getElementById("tbl-"+key).innerHTML=Register.table(key,rows,cols);
+    document.getElementById("cnt-"+key).textContent=rows.length+" record"+(rows.length===1?"":"s");
+  },
+
+  cell:function(f,r){
+    var v=r[f.k];
+    if(f.t==="calc") return f.fn(r);
+    if(f.t==="vessel") return esc(vesselName(v));
+    if(f.t==="audit") return esc(auditLabel(v));
+    if(f.t==="file") return v? '<a href="#" onclick="Register.viewFile(\''+esc(f.k)+'\',\''+r.id+'\',\''+App.tab+'\');return false;">View</a>' : '<span style="color:#9db3bd">—</span>';
+    if(f.t==="date") return esc(dmy(v));
+    if(f.t==="time") return esc(hhmm(v));
+    if(f.t==="ro") return esc(v||"");
+    if(f.t==="num"){ if(v===""||v==null) return ""; return esc(qty(v, String(v).indexOf(".")>=0?2:0)); }
+    if(f.t==="area"){ var t=String(v||""); return esc(t.length>70?t.slice(0,70)+"…":t); }
+    if(f.k==="status"||f.k==="state") return Register.statusCell(v);
+    return esc(v);
+  },
+
+  statusCell:function(v){
+    if(!v) return "";
+    var bad=["Overdue","Open","Expired","Cancelled","Reported","Vessel stopped / critical"];
+    var warn=["Due","Under repair","Awaiting spares","Under review","Under investigation","Requested","Findings issued","Deferred (risk assessed)","Corrective action in progress","Reliever Required","Drydock","Under Repair"];
+    var ok=["Completed","Closed","Delivered","Onboard","At Sea","In Port","Approved","Valid"];
+    var kind = bad.indexOf(v)>=0?"bad" : warn.indexOf(v)>=0?"warn" : ok.indexOf(v)>=0?"ok" : "info";
+    return pill(v,kind);
+  },
+
+  table:function(key,rows,cols){
+    if(!rows.length) return '<div class="empty"><b>Nothing recorded yet</b>Use "Add '+esc(SCHEMAS[key].singular)+'" to create the first entry.</div>';
+    var h='<div class="tw"><table class="grid"><thead><tr>';
+    cols.forEach(function(f){ h+='<th>'+esc(f.l)+'</th>'; });
+    h+='<th>Actions</th></tr></thead><tbody>';
+    rows.forEach(function(r){
+      h+='<tr>';
+      cols.forEach(function(f){ h+='<td>'+Register.cell(f,r)+'</td>'; });
+      h+='<td class="act">'+
+         '<button class="btn sm g" onclick="Register.detail(\''+key+'\',\''+r.id+'\')">Open</button> '+
+         '<button class="btn sm" onclick="Register.form(\''+key+'\',\''+r.id+'\')">Edit</button> '+
+         '<button class="btn sm d" onclick="Register.del(\''+key+'\',\''+r.id+'\')">Delete</button></td></tr>';
+    });
+    return h+'</tbody></table></div>';
+  },
+
+  /* ---- form ---- */
+  form:function(key,id){
+    var s=SCHEMAS[key], rec = id? byId(DB[key],id) : null;
+    if(key!=="vessels" && Register.hasVessel(key) && !DB.vessels.length && !rec){
+      return UI.alert("Add a vessel first. Every record in NS FLEET is filed against a vessel, so the vessel register has to be populated before anything else.","No vessels yet");
+    }
+    var h='<div class="fgrid">';
+    s.fields.forEach(function(f){
+      if(f.t==="sec"){ h+='<div class="fsec">'+esc(f.l)+'</div>'; return; }
+      if(f.t==="calc") return;
+      var live = f.on? ' oninput="'+f.on+'" onchange="'+f.on+'"' : '';
+      var pre=Register._presets||{};
+      var val = rec? (rec[f.k]==null?"":rec[f.k]) : (pre[f.k]!==undefined? pre[f.k] : (f.def? f.def() : ""));
+      var full = (f.t==="area"||f.t==="file")?" full":"";
+      h+='<div class="f'+full+'"><label>'+esc(f.l)+(f.req?' <span class="req">*</span>':'')+'</label>';
+      if(f.t==="select"){
+        h+='<select id="fld_'+f.k+'"><option value=""></option>'+f.opts.map(function(o){return '<option'+(String(val)===o?" selected":"")+'>'+esc(o)+'</option>';}).join("")+'</select>';
+      } else if(f.t==="audit"){
+        h+='<select id="fld_'+f.k+'"><option value="">— select audit —</option>'+auditOpts().map(function(o){return '<option value="'+o.v+'"'+(val===o.v?" selected":"")+'>'+esc(o.l)+'</option>';}).join("")+'</select>';
+      } else if(f.t==="vessel"){
+        h+='<select id="fld_'+f.k+'"><option value="">— select vessel —</option>'+vesselOpts().map(function(o){return '<option value="'+o.v+'"'+(val===o.v?" selected":"")+'>'+esc(o.l)+'</option>';}).join("")+'</select>';
+      } else if(f.t==="area"){
+        h+='<textarea id="fld_'+f.k+'">'+esc(val)+'</textarea>';
+      } else if(f.t==="ro"){
+        h+='<input type="text" id="fld_'+f.k+'" value="'+esc(val)+'" readonly style="background:#eef4f7;font-weight:600">';
+      } else if(f.t==="date"){
+        h+='<input type="date" id="fld_'+f.k+'" value="'+esc(String(val).slice(0,10))+'"'+live+'>';
+      } else if(f.t==="time"){
+        h+='<input type="text" inputmode="numeric" maxlength="5" placeholder="1200" id="fld_'+f.k+'" value="'+esc(hhmm(val))+'" onblur="this.value=hhmm(this.value)'+(f.on?";"+f.on:"")+'"'+live+'>';
+      } else if(f.t==="num"){
+        h+='<input type="number" step="any" inputmode="decimal" id="fld_'+f.k+'" value="'+esc(val)+'"'+live+(f.focus?' onfocus="'+f.focus+'"':'')+'>';
+      } else if(f.t==="file"){
+        h+='<div class="filebox"><input type="hidden" id="fld_'+f.k+'" value=\''+(val?esc(JSON.stringify(val)):"")+'\'>'+
+           '<button type="button" class="btn sm g" onclick="Register.attach(\''+f.k+'\')">Choose file</button>'+
+           '<span id="fn_'+f.k+'">'+(val&&val.n?esc(val.n):"No file attached")+'</span>'+
+           (val?' <button type="button" class="btn sm d" onclick="Register.detach(\''+f.k+'\')">Remove</button>':'')+
+           '</div><div class="hint">Images or PDF up to 700 KB. Larger files will not fit in browser storage.</div>';
+      } else {
+        var listId="";
+        if(f.list){ listId=' list="dl_'+f.k+'"'; }
+        h+='<input type="text" id="fld_'+f.k+'"'+(rec&&f.ro?' readonly style="background:#f1f5f7"':'')+listId+' value="'+esc(val)+'">';
+        if(f.list) h+='<datalist id="dl_'+f.k+'">'+f.list.map(function(o){return '<option value="'+esc(o)+'">';}).join("")+'</datalist>';
+      }
+      if(f.hint) h+='<div class="hint">'+esc(f.hint)+'</div>';
+      h+='</div>';
+    });
+    h+='</div>';
+    Register._presets=null;
+    UI.open((rec?"Edit ":"Add ")+esc(s.singular), h,
+      '<button class="btn g" onclick="UI.close()">Cancel</button><button class="btn o" onclick="Register.save(\''+key+'\','+(id?"'"+id+"'":"null")+')">Save</button>', "lg");
+    if(s.after) setTimeout(s.after,0);
+  },
+
+  attach:function(k){
+    UI.pickFile("image/*,application/pdf",function(file){
+      if(file.size>700*1024) return UI.alert("That file is "+Math.round(file.size/1024)+" KB. Attachments must be 700 KB or smaller — re-save it at a lower resolution and try again.");
+      var r=new FileReader();
+      r.onload=function(){
+        document.getElementById("fld_"+k).value=JSON.stringify({n:file.name,t:file.type,d:r.result});
+        document.getElementById("fn_"+k).textContent=file.name;
+      };
+      r.readAsDataURL(file);
+    });
+  },
+  detach:function(k){ document.getElementById("fld_"+k).value=""; document.getElementById("fn_"+k).textContent="No file attached"; },
+
+  viewFile:function(fk,id,key){
+    var r=byId(DB[key],id); if(!r||!r[fk]) return;
+    var f=r[fk], isPdf=(f.t||"").indexOf("pdf")>=0;
+    var body = isPdf? '<p><b>'+esc(f.n)+'</b></p><p style="font-size:13px;color:#5d7480">PDF attachments open in a new tab.</p>'
+                    : '<p><b>'+esc(f.n)+'</b></p><img src="'+f.d+'" style="max-width:100%;border:1px solid #d7e1e6;border-radius:6px">';
+    body+='<p style="font-size:12.5px;color:#5d7480;margin-top:10px">On iPad the download button is unreliable — use <b>Open in new tab</b>, then share or save from there.</p>';
+    UI.open("Attachment", body,
+      '<a class="btn g" style="text-decoration:none" href="'+f.d+'" download="'+esc(f.n)+'">Download</a>'+
+      '<button class="btn" onclick="Register.openBlob(\''+fk+'\',\''+id+'\',\''+key+'\')">Open in new tab</button>'+
+      '<button class="btn g" onclick="UI.close()">Close</button>');
+  },
+  openBlob:function(fk,id,key){
+    var r=byId(DB[key],id), f=r[fk];
+    try{
+      var parts=f.d.split(","), bin=atob(parts[1]), arr=new Uint8Array(bin.length);
+      for(var i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+      var url=URL.createObjectURL(new Blob([arr],{type:f.t||"application/octet-stream"}));
+      window.open(url,"_blank");
+    }catch(e){ window.open(f.d,"_blank"); }
+  },
+
+  save:function(key,id){
+    var s=SCHEMAS[key], rec = id? byId(DB[key],id) : {id:uid(), created:new Date().toISOString()};
+    var missing=[];
+    s.fields.forEach(function(f){
+      if(f.t==="sec"||f.t==="calc") return;
+      var el=document.getElementById("fld_"+f.k); if(!el) return;
+      var v=el.value;
+      if(f.t==="file"){ rec[f.k] = v? JSON.parse(v) : null; return; }
+      if(f.t==="time") v=hhmm(v);
+      if(f.req && !String(v).trim()) missing.push(f.l);
+      rec[f.k]=v;
+    });
+    if(missing.length) return UI.alert("These fields are required: <b>"+esc(missing.join(", "))+"</b>. Fill them in and save again.","Missing information");
+    if(s.validate){ var err=s.validate(rec,id||null); if(err) return UI.alert(err,"Cannot save"); }
+    if(!id){
+      if(s.auto && !rec[s.auto.k]) rec[s.auto.k]=seq(key, s.auto.prefix, s.auto.pad);
+      DB[key].push(rec);
+    }
+    rec.updated=new Date().toISOString();
+    save(); UI.close(); App.render(); UI.toast(id?"Changes saved":"Record added");
+  },
+
+  del:function(key,id){
+    var r=byId(DB[key],id);
+    var label = r.name||r.refNo||r.jobNo||r.reqNo||r.voyageNo||r.ccn||r.crewName||"this record";
+    UI.confirm("Delete "+label+"? This cannot be undone.").then(function(ok){
+      if(!ok) return;
+      DB[key]=DB[key].filter(function(x){return x.id!==id;});
+      save(); App.render(); UI.toast("Record deleted");
+    });
+  },
+
+  detail:function(key,id){
+    var s=SCHEMAS[key], r=byId(DB[key],id); if(!r) return;
+    var h='<div class="dl">';
+    s.fields.forEach(function(f){
+      if(f.t==="sec"){ h+='</div><div class="fsec" style="margin:10px 0 6px">'+esc(f.l)+'</div><div class="dl">'; return; }
+      var v;
+      if(f.t==="calc") v=f.fn(r);
+      else if(f.t==="vessel") v=esc(vesselName(r[f.k]));
+      else if(f.t==="audit") v=esc(auditLabel(r[f.k]));
+      else if(f.t==="date") v=esc(dmy(r[f.k]));
+      else if(f.t==="file") v=r[f.k]? esc(r[f.k].n) : "—";
+      else if(f.t==="num") v=(r[f.k]===""||r[f.k]==null)?"—":esc(qty(r[f.k],String(r[f.k]).indexOf(".")>=0?2:0));
+      else v=esc(r[f.k])||"—";
+      h+='<div class="i"><span>'+esc(f.l)+'</span><b>'+(v||"—")+'</b></div>';
+    });
+    h+='</div>';
+    var extra = key==="vessels" ? Register.vesselDossier(r) : (key==="audits" ? Register.auditFindings(r) : "");
+    UI.open(esc(s.singular.charAt(0).toUpperCase()+s.singular.slice(1))+" details", h+extra,
+      '<button class="btn g" onclick="UI.close()">Close</button><button class="btn" onclick="UI.close();Register.form(\''+key+'\',\''+id+'\')">Edit</button>', "lg");
+  },
+
+  addFinding:function(auditId){
+    var a=byId(DB.audits,auditId);
+    Register._presets={audit:auditId, vessel:a?a.vessel||"":"", raisedBy:a?a.auditor||"":"", targetDate:a?a.targetDate||"":""};
+    UI.close(); App.go("safety","findings");
+    setTimeout(function(){ Register.form("findings"); },120);
+  },
+
+  auditFindings:function(a){
+    var f=(DB.findings||[]).filter(function(x){return x.audit===a.id;});
+    var open=f.filter(function(x){return x.status!=="Verified and closed";}).length;
+    var stated=num(a.ncr)+num(a.observations);
+    var h='<div class="fsec" style="margin:14px 0 8px">Findings raised at this audit</div>';
+    if(stated && f.length<stated)
+      h+='<div style="background:#fdf3dd;border:1px solid #f0dfb0;border-radius:6px;padding:10px 12px;font-size:13px;color:#7a5a10;margin-bottom:10px">'+
+         'The audit report states <b>'+stated+'</b> finding'+(stated===1?"":"s")+' but only <b>'+f.length+'</b> '+(f.length===1?"is":"are")+
+         ' logged. Log each one so it carries its own root cause, owner and close-out date.</div>';
+    if(!f.length) h+='<p style="font-size:13.5px;color:#5d7480;margin:0 0 10px">No findings logged against this audit yet.</p>';
+    else{
+      h+='<div class="tw"><table class="grid"><thead><tr><th>No.</th><th>Category</th><th>Reference</th><th>Finding</th><th>Responsible</th><th>Target</th><th>Status</th><th></th></tr></thead><tbody>';
+      sortBy(f,"refNo").forEach(function(x){
+        var late = x.status!=="Verified and closed" && x.targetDate && days(x.targetDate)<0;
+        h+='<tr><td>'+esc(x.refNo||"")+'</td><td>'+(x.category==="Major non-conformity"?pill("Major NC","bad"):(x.category==="Observation"?pill("Obs","info"):pill("NC","warn")))+'</td>'+
+           '<td>'+esc(x.clause||"")+'</td><td>'+esc(String(x.description||"").slice(0,70))+'</td><td>'+esc(x.responsible||"")+'</td>'+
+           '<td>'+esc(dmy(x.targetDate))+(late?' '+pill("overdue","bad"):"")+'</td><td>'+Register.statusCell(x.status)+'</td>'+
+           '<td><button class="btn sm g" onclick="UI.close();App.go(\'safety\',\'findings\');setTimeout(function(){Register.detail(\'findings\',\''+x.id+'\')},150)">Open</button></td></tr>';
+      });
+      h+='</tbody></table></div>';
+    }
+    h+='<div style="margin-top:10px"><button class="btn o" onclick="Register.addFinding(\''+a.id+'\')">Add a finding</button></div>';
+    if(a.status==="Closed" && open)
+      h+='<div style="background:#fbe4e2;border:1px solid #f0bdb8;border-radius:6px;padding:10px 12px;font-size:13px;color:#7a1a15;margin-top:10px">'+
+         'This audit is marked closed but <b>'+open+'</b> finding'+(open===1?"":"s")+' remain open.</div>';
+    return h;
+  },
+
+  vesselDossier:function(v){
+    function count(key,extra){ return (DB[key]||[]).filter(function(r){ return r.vessel===v.id && (!extra||extra(r)); }).length; }
+    var certExp=(DB.certificates||[]).filter(function(c){ return c.vessel===v.id && c.expiry && days(c.expiry)<=60; });
+    var h='<div class="fsec" style="margin:14px 0 8px">Linked records</div><div class="kpis">';
+    h+='<div class="kpi"><div class="n">'+count("crew",function(r){return r.status==="Onboard";})+'</div><div class="l">Crew on board</div></div>';
+    h+='<div class="kpi"><div class="n">'+count("certificates")+'</div><div class="l">Certificates on file</div></div>';
+    h+='<div class="kpi'+(certExp.length?" alert":"")+'"><div class="n">'+certExp.length+'</div><div class="l">Certificates due within 60 days</div></div>';
+    h+='<div class="kpi"><div class="n">'+count("pmsjobs",function(r){return r.status!=="Completed"&&r.dueDate&&days(r.dueDate)<0;})+'</div><div class="l">Overdue maintenance jobs</div></div>';
+    h+='<div class="kpi"><div class="n">'+count("defects",function(r){return r.status!=="Closed";})+'</div><div class="l">Open defects</div></div>';
+    h+='<div class="kpi"><div class="n">'+count("voyages")+'</div><div class="l">Voyages recorded</div></div>';
+    h+='</div>';
+    if(certExp.length){
+      h+='<div class="fsec" style="margin:14px 0 6px">Certificates needing attention</div><ul style="margin:0;padding-left:18px;font-size:13px">';
+      certExp.forEach(function(c){ h+='<li>'+esc(c.name)+' — '+(days(c.expiry)<0?"expired":"expires")+' '+dmy(c.expiry)+'</li>'; });
+      h+='</ul>';
+    }
+    return h;
+  },
+
+  csv:function(key){
+    var s=SCHEMAS[key], rows=Register.rows(key);
+    if(!rows.length) return UI.alert("There is nothing to export in this register yet.");
+    var flds=s.fields.filter(function(f){return f.t!=="sec"&&f.t!=="calc"&&f.t!=="file";});
+    var lines=[flds.map(function(f){return '"'+f.l.replace(/"/g,'""')+'"';}).join(",")];
+    rows.forEach(function(r){
+      lines.push(flds.map(function(f){
+        var v = f.t==="vessel"? vesselName(r[f.k]) : (r[f.k]==null?"":r[f.k]);
+        return '"'+String(v).replace(/"/g,'""')+'"';
+      }).join(","));
+    });
+    var blob=new Blob(["\ufeff"+lines.join("\r\n")],{type:"text/csv;charset=utf-8"});
+    var url=URL.createObjectURL(blob), fn="NS-FLEET-"+key+"-"+today()+".csv";
+    var a=document.createElement("a"); a.href=url; a.download=fn; document.body.appendChild(a); a.click();
+    setTimeout(function(){URL.revokeObjectURL(url);a.remove();},1500);
+    UI.toast("CSV prepared: "+fn);
+  },
+
+  print:function(key){
+    var s=SCHEMAS[key], rows=Register.rows(key), cols=s.fields.filter(function(f){return f.col&&f.t!=="file";});
+    if(!rows.length) return UI.alert("There is nothing to print in this register yet.");
+    var head=cols.map(function(f){return '<th>'+esc(f.l)+'</th>';}).join("");
+    var body=rows.map(function(r){
+      return '<tr>'+cols.map(function(f){
+        var v;
+        if(f.t==="calc") v=String(f.fn(r)).replace(/<[^>]+>/g,"");
+        else if(f.t==="vessel") v=vesselName(r[f.k]);
+        else if(f.t==="date") v=dmy(r[f.k]);
+        else v=r[f.k]==null?"":r[f.k];
+        return '<td>'+esc(v)+'</td>';
+      }).join("")+'</tr>';
+    }).join("");
+    var meta = App.filter.vessel? "Vessel: "+vesselName(App.filter.vessel) : "All vessels";
+    Print.show(s.title.toUpperCase(), meta, '<table class="pgrid"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table>');
+  },
+
+  importCrew:function(){
+    UI.open("Import crew file",
+      '<p>NS FLEET can read a crew list exported from the NAVI Crewing System (.json) or a CSV with a header row.</p>'+
+      '<p style="font-size:13px;color:#5d7480">Names, ranks, contract dates and document expiries are matched by column name. Anything it cannot match is left blank for you to complete. Existing crew are not overwritten — matching names are skipped.</p>',
+      '<button class="btn g" onclick="UI.close()">Cancel</button><button class="btn o" onclick="Register.doImportCrew()">Choose file</button>',"sm");
+  },
+  doImportCrew:function(){
+    UI.close();
+    UI.pickFile(".json,.csv,application/json,text/csv",function(file){
+      var r=new FileReader();
+      r.onload=function(){
+        var recs=[];
+        try{
+          if(/\.json$/i.test(file.name)){
+            var d=JSON.parse(r.result);
+            recs = findArray(d);
+          } else {
+            recs = parseCSV(r.result);
+          }
+        }catch(e){ return UI.alert("That file could not be read."); }
+        if(!recs.length) return UI.alert("No crew rows were found in that file.");
+        var added=0, skipped=0;
+        recs.forEach(function(src){
+          var nm = pick(src,["name","fullname","crewname","seafarer","surname"]);
+          if(!nm) return;
+          if(DB.crew.some(function(c){ return (c.name||"").toLowerCase()===String(nm).toLowerCase(); })){ skipped++; return; }
+          var rec={id:uid(),created:new Date().toISOString()};
+          rec.ccn = pick(src,["ccn","crewcontrolno","controlno"]) || seq("crew","CCN-",5);
+          rec.name = nm;
+          rec.rank = pick(src,["rank","position","designation"])||"";
+          rec.status = pick(src,["status"])||"Onboard";
+          rec.contact = pick(src,["contact","contactnumber","mobile","phone"])||"";
+          rec.dob = dateish(pick(src,["dob","dateofbirth","birthdate"]));
+          rec.signOn = dateish(pick(src,["signon","signondate","embark","embarkation"]));
+          rec.contractEnd = dateish(pick(src,["contractend","contractexpiry","enddate"]));
+          rec.sirbNo = pick(src,["sirb","sirbno"])||"";
+          rec.sirbExp = dateish(pick(src,["sirbexpiry","sirbexp"]));
+          rec.licenseNo = pick(src,["license","licenseno","licence","licenceno","cop"])||"";
+          rec.licenseExp = dateish(pick(src,["licenseexpiry","licenceexpiry","licexp","copexpiry"]));
+          rec.medicalExp = dateish(pick(src,["medical","medicalexpiry","medexp"]));
+          rec.sidExp = dateish(pick(src,["sid","sidexpiry","marinaid","marinaidexpiry"]));
+          rec.address = pick(src,["address","homeaddress"])||"";
+          rec.emgName = pick(src,["emergencycontact","emergencyname","emergencycontactname"])||"";
+          rec.remarks = "Imported "+today();
+          var vn = pick(src,["vessel","vesselname","assignedvessel"]);
+          if(vn){ var v=DB.vessels.filter(function(x){return (x.name||"").toLowerCase()===String(vn).toLowerCase();})[0]; if(v) rec.vessel=v.id; }
+          DB.crew.push(rec); added++;
+        });
+        save(); App.render();
+        UI.alert("<b>"+added+"</b> crew added."+(skipped?" <b>"+skipped+"</b> skipped because the name already exists.":"")+" Open each record to fill in the vessel and any missing dates.","Import finished");
+      };
+      r.readAsText(file);
+    });
+  }
+};
+
+function norm(s){ return String(s||"").toLowerCase().replace(/[^a-z0-9]/g,""); }
+function pick(obj,keys){
+  for(var k in obj){ var n=norm(k); for(var i=0;i<keys.length;i++){ if(n===keys[i]) return obj[k]; } }
+  for(var k2 in obj){ var n2=norm(k2); for(var j=0;j<keys.length;j++){ if(n2.indexOf(keys[j])>=0) return obj[k2]; } }
+  return "";
+}
+function dateish(v){
+  if(!v) return "";
+  var s=String(v).trim();
+  if(/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
+  var m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if(m) return m[3]+"-"+String(m[2]).padStart(2,"0")+"-"+String(m[1]).padStart(2,"0");
+  var d=new Date(s); if(!isNaN(d)) return d.toISOString().slice(0,10);
+  return "";
+}
+function findArray(d){
+  if(Array.isArray(d)&&d.length&&typeof d[0]==="object") return d;
+  var best=[];
+  for(var k in d){
+    var v=d[k];
+    if(Array.isArray(v)&&v.length&&typeof v[0]==="object"){
+      if(/crew|roster|seafarer|personnel/i.test(k)) return v;
+      if(v.length>best.length) best=v;
+    }
+  }
+  return best;
+}
+function parseCSV(text){
+  var lines=text.replace(/\r/g,"").split("\n").filter(function(l){return l.trim();});
+  if(lines.length<2) return [];
+  function split(l){
+    var out=[],cur="",q=false;
+    for(var i=0;i<l.length;i++){
+      var c=l[i];
+      if(q){ if(c==='"'){ if(l[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=c; }
+      else { if(c==='"') q=true; else if(c===","){ out.push(cur); cur=""; } else cur+=c; }
+    }
+    out.push(cur); return out;
+  }
+  var head=split(lines[0]);
+  return lines.slice(1).map(function(l){
+    var cells=split(l), o={};
+    head.forEach(function(h,i){ o[h.trim()]=(cells[i]||"").trim(); });
+    return o;
+  });
+}
+
+/* ---------------- Alerts engine -------------------------------------- */
+var Alerts={
+  all:function(){
+    var out=[];
+    (DB.certificates||[]).forEach(function(c){
+      if(!c.expiry) return; var d=days(c.expiry);
+      var who = c.vessel? vesselName(c.vessel) : "Company";
+      if(d<0) out.push({k:"bad",t:who+" — "+(c.name||"certificate")+" expired",s:"Expired "+dmy(c.expiry)+" ("+Math.abs(d)+" days ago). Vessel should not trade on an expired certificate.",go:["certs","certificates"]});
+      else if(d<=60) out.push({k:"warn",t:who+" — "+(c.name||"certificate")+" expires in "+d+" days",s:"Expiry "+dmy(c.expiry)+". Start the renewal with "+(c.issuer||"the issuing authority")+".",go:["certs","certificates"]});
+    });
+    (DB.pmsjobs||[]).forEach(function(j){
+      if(j.status==="Completed"||j.status==="Postponed (approved)") return;
+      if(!j.dueDate) return; var d=days(j.dueDate);
+      if(d<0) out.push({k:(j.criticality==="Critical equipment"?"bad":"warn"),t:vesselName(j.vessel)+" — "+(j.job||"maintenance job")+" overdue",s:(j.component||"")+" · due "+dmy(j.dueDate)+" ("+Math.abs(d)+" days overdue)",go:["pms","pmsjobs"]});
+      else if(d<=14) out.push({k:"info",t:vesselName(j.vessel)+" — "+(j.job||"maintenance job")+" due in "+d+" days",s:(j.component||"")+" · due "+dmy(j.dueDate),go:["pms","pmsjobs"]});
+    });
+    (DB.crew||[]).forEach(function(c){
+      if(c.status==="Separated") return;
+      if(c.contractEnd){ var d=days(c.contractEnd);
+        if(d<0) out.push({k:"bad",t:(c.name||"Crew")+" — contract expired",s:vesselName(c.vessel)+" · ended "+dmy(c.contractEnd)+". Arrange relief or extension.",go:["crewmgmt","crew"]});
+        else if(d<=30) out.push({k:"warn",t:(c.name||"Crew")+" — contract ends in "+d+" days",s:vesselName(c.vessel)+" · "+(c.rank||"")+". Nominate a reliever.",go:["crewmgmt","crew"]});
+      }
+      [["SIRB",c.sirbExp],["Licence / COP",c.licenseExp],["Medical certificate",c.medicalExp],["MARINA ID / SID",c.sidExp]].forEach(function(p){
+        if(!p[1]) return; var d=days(p[1]);
+        if(d<0) out.push({k:"bad",t:(c.name||"Crew")+" — "+p[0]+" expired",s:vesselName(c.vessel)+" · expired "+dmy(p[1]),go:["crewmgmt","crew"]});
+        else if(d<=45) out.push({k:"warn",t:(c.name||"Crew")+" — "+p[0]+" expires in "+d+" days",s:vesselName(c.vessel)+" · "+dmy(p[1]),go:["crewmgmt","crew"]});
+      });
+    });
+    (DB.defects||[]).forEach(function(f){
+      if(f.status==="Closed") return;
+      if(f.severity==="Critical") out.push({k:"bad",t:vesselName(f.vessel)+" — critical defect open",s:(f.equipment||"")+": "+(f.description||"").slice(0,90),go:["pms","defects"]});
+      else if(f.targetDate&&days(f.targetDate)<0) out.push({k:"warn",t:vesselName(f.vessel)+" — defect past target date",s:(f.equipment||"")+" · target "+dmy(f.targetDate),go:["pms","defects"]});
+    });
+    (DB.incidents||[]).forEach(function(i){
+      if(i.status==="Closed") return;
+      if(i.targetDate&&days(i.targetDate)<0) out.push({k:"warn",t:"Report "+(i.refNo||"")+" past close-out date",s:(i.title||"")+" · target "+dmy(i.targetDate),go:["safety","incidents"]});
+      else if(i.severity==="Critical") out.push({k:"bad",t:"Critical report open — "+(i.refNo||""),s:(i.title||"")+" · "+vesselName(i.vessel),go:["safety","incidents"]});
+    });
+    (DB.audits||[]).forEach(function(a){
+      if(a.status==="Closed") return;
+      if(a.targetDate&&days(a.targetDate)<0) out.push({k:"warn",t:"Audit "+(a.refNo||"")+" findings not closed",s:(a.type||"")+" · target "+dmy(a.targetDate),go:["safety","audits"]});
+    });
+    (DB.findings||[]).forEach(function(f){
+      if(f.status==="Verified and closed") return;
+      var who=f.vessel? vesselName(f.vessel) : "Office";
+      var late=f.targetDate && days(f.targetDate)<0;
+      if(f.category==="Major non-conformity")
+        out.push({k:"bad",t:who+" — major non-conformity open ("+(f.refNo||"")+")",
+          s:String(f.description||"").slice(0,90)+(f.targetDate?" · target "+dmy(f.targetDate):""),go:["safety","findings"]});
+      else if(late)
+        out.push({k:"warn",t:who+" — finding "+(f.refNo||"")+" past its close-out date",
+          s:String(f.description||"").slice(0,80)+" · target "+dmy(f.targetDate)+" ("+Math.abs(days(f.targetDate))+" days)",go:["safety","findings"]});
+    });
+    (DB.audits||[]).forEach(function(a){
+      if(a.status!=="Closed") return;
+      var open=(DB.findings||[]).filter(function(x){return x.audit===a.id && x.status!=="Verified and closed";}).length;
+      if(open) out.push({k:"warn",t:"Audit "+(a.refNo||"")+" closed with findings still open",
+        s:open+" finding"+(open===1?"":"s")+" not verified. "+(a.type||""),go:["safety","findings"]});
+    });
+    Audit.dueList().forEach(function(a){
+      var who = a.vessel? vesselName(a.vessel) : "Office";
+      var d=days(a.nextDue);
+      out.push({k:(d<0?"bad":"warn"),
+        t:who+" — "+a.type+(d<0? " overdue by "+Math.abs(d)+" days" : " due in "+d+" days"),
+        s:"Last held "+dmy(a.date)+(a.refNo?" ("+a.refNo+")":"")+". Next due "+dmy(a.nextDue)+".",
+        go:["safety","audits"]});
+    });
+    DrillPlan.gaps().forEach(function(g){
+      out.push({k:g.overdue>15?"bad":"warn",t:g.vessel+" — "+g.drill+" drill overdue",s:g.last?("Last held "+dmy(g.last)+", "+g.overdue+" days past the monthly interval"):"No drill recorded for this vessel",go:["safety","drills"]});
+    });
+    FuelLog.flagged().forEach(function(r){
+      var c=FuelLog.calc(r);
+      var worst=c.rows.filter(function(x){return x.state==="off";})
+        .map(function(x){return x.tag+" "+(x.pct>0?"+":"")+x.pct.toFixed(1)+"%";}).join(", ");
+      out.push({k:"warn",t:vesselName(r.vessel)+" — fuel report out of range "+dmy(r.date),
+        s:"Reported "+qty(c.used)+" L against an expected "+qty(c.expected)+" L ("+worst+"). Verify the figures with the vessel.",
+        go:["fuel","variance"]});
+    });
+    (DB.fuellog||[]).forEach(function(r){
+      var b=FuelLog.balance(r);
+      if(!b.flag) return;
+      out.push({k:"warn",t:vesselName(r.vessel)+" — fuel ROB does not balance "+dmy(r.date),
+        s:"Sounding "+qty(b.sounded)+" L against a calculated "+qty(b.calculated)+" L (opening "+qty(b.opening)+
+          " + bunkered "+qty(b.received)+" − consumed "+qty(b.consumed)+"). Difference "+(b.diff>0?"+":"")+qty(b.diff)+" L.",
+        go:["fuel","fuellog"]});
+    });
+    (DB.requisitions||[]).forEach(function(q){
+      if(q.urgency==="Vessel stopped / critical" && ["Requested","Under review","Approved"].indexOf(q.status)>=0)
+        out.push({k:"bad",t:vesselName(q.vessel)+" — critical requisition awaiting supply",s:(q.reqNo||"")+": "+String(q.item||"").slice(0,80),go:["procurement","requisitions"]});
+    });
+    var rank={bad:0,warn:1,info:2};
+    return out.sort(function(a,b){return rank[a.k]-rank[b.k];});
+  }
+};
+
+/* ---------------- Drill compliance (monthly interval) ----------------- */
+var DrillPlan={
+  mandatory:["Abandon ship","Fire fighting"],
+  lastFor:function(vId,drill){
+    var recs=(DB.drills||[]).filter(function(d){return d.vessel===vId&&d.drill===drill&&d.date;});
+    if(!recs.length) return null;
+    return sortBy(recs,"date",true)[0].date;
+  },
+  gaps:function(){
+    var out=[], started=(DB.drills||[]).length>0;
+    if(!started) return out;
+    (DB.vessels||[]).forEach(function(v){
+      if(v.status==="Laid-up") return;
+      DrillPlan.mandatory.forEach(function(d){
+        var last=DrillPlan.lastFor(v.id,d);
+        var over = last? -days(last)-31 : null;
+        if(!last) out.push({vessel:v.name,drill:d,last:null,overdue:999});
+        else if(over>0) out.push({vessel:v.name,drill:d,last:last,overdue:over});
+      });
+    });
+    return out;
+  }
+};
+
+/* ---------------- Views ---------------------------------------------- */
+var Views={
+
+ dashboard:function(){
+  var v=DB.vessels||[], crew=DB.crew||[];
+  var onboard=crew.filter(function(c){return c.status==="Onboard";}).length;
+  var certSoon=(DB.certificates||[]).filter(function(c){return c.expiry&&days(c.expiry)<=60;}).length;
+  var pmsOver=(DB.pmsjobs||[]).filter(function(j){return j.status!=="Completed"&&j.dueDate&&days(j.dueDate)<0;}).length;
+  var defOpen=(DB.defects||[]).filter(function(d){return d.status!=="Closed";}).length;
+  var incOpen=(DB.incidents||[]).filter(function(i){return i.status!=="Closed";}).length;
+  var voyActive=(DB.voyages||[]).filter(function(x){return ["Loading","At sea","Discharging"].indexOf(x.status)>=0;}).length;
+  var reqOpen=(DB.requisitions||[]).filter(function(r){return ["Requested","Under review","Approved","Purchase order issued"].indexOf(r.status)>=0;}).length;
+  var mStart=today().slice(0,7);
+  var fuelMonth=(DB.bunkers||[]).filter(function(b){return String(b.date).slice(0,7)===mStart;})
+                 .reduce(function(s,b){return s+num(b.litres)*num(b.price);},0);
+
+  var h='';
+  if(!v.length){
+    h+='<div class="card"><h2>Start here</h2><div class="body">'+
+       '<p>NS FLEET keeps everything against a vessel. Add your vessels first, then certificates and crew — the alert panel starts working as soon as expiry dates are in.</p>'+
+       '<button class="btn o" onclick="App.go(\'fleet\',\'vessels\')">Go to the vessel register</button></div></div>';
+  }
+  h+='<div class="kpis">'+
+     kpi(v.length,"Vessels in the fleet")+
+     kpi(onboard,"Crew on board")+
+     kpi(certSoon,"Certificates due within 60 days",certSoon?"alert":"")+
+     kpi(pmsOver,"Maintenance jobs overdue",pmsOver?"danger":"")+
+     kpi(defOpen,"Open defects",defOpen?"alert":"")+
+     kpi(incOpen,"Open safety reports",incOpen?"alert":"")+
+     kpi(voyActive,"Voyages running")+
+     kpi(reqOpen,"Requisitions in progress")+
+     '<div class="kpi money"><div class="n">'+peso(fuelMonth)+'</div><div class="l">Fuel purchased this month</div></div>'+
+     '</div>';
+
+  var al=Alerts.all();
+  h+='<div class="card"><h2>Action items'+(al.length?' ('+al.length+')':'')+'<span class="r"><button class="btn sm g" onclick="Views.printAlerts()">Print</button></span></h2>';
+  if(!al.length) h+='<div class="empty"><b>Nothing outstanding</b>No expiries, overdue jobs or open findings were found.</div>';
+  else{
+    h+='<div class="alist">';
+    al.slice(0,40).forEach(function(a){
+      h+='<div class="arow"><div class="dot '+a.k+'"></div><div class="t"><b>'+esc(a.t)+'</b><span>'+esc(a.s)+'</span></div>'+
+         '<button class="btn sm g" onclick="App.go(\''+a.go[0]+'\',\''+a.go[1]+'\')">Open</button></div>';
+    });
+    if(al.length>40) h+='<div class="arow"><div class="t"><span>'+(al.length-40)+' more items not shown.</span></div></div>';
+    h+='</div>';
+  }
+  h+='</div>';
+
+  if(v.length){
+    h+='<div class="card"><h2>Fleet status</h2><div class="body tight"><div class="tw"><table class="grid">'+
+       '<thead><tr><th>Vessel</th><th>Type</th><th>Status</th><th>Crew on board</th><th>Certificates due &le;60d</th><th>Overdue jobs</th><th>Open defects</th><th></th></tr></thead><tbody>';
+    sortBy(v,"name").forEach(function(x){
+      var cOn=crew.filter(function(c){return c.vessel===x.id&&c.status==="Onboard";}).length;
+      var cd=(DB.certificates||[]).filter(function(c){return c.vessel===x.id&&c.expiry&&days(c.expiry)<=60;}).length;
+      var po=(DB.pmsjobs||[]).filter(function(j){return j.vessel===x.id&&j.status!=="Completed"&&j.dueDate&&days(j.dueDate)<0;}).length;
+      var df=(DB.defects||[]).filter(function(d){return d.vessel===x.id&&d.status!=="Closed";}).length;
+      h+='<tr><td><b>'+esc(x.name)+'</b></td><td>'+esc(x.type||"")+'</td><td>'+Register.statusCell(x.status)+'</td>'+
+         '<td>'+cOn+'</td><td>'+(cd?pill(cd+" due","warn"):"0")+'</td><td>'+(po?pill(po+" overdue","bad"):"0")+'</td><td>'+(df?pill(df+" open","warn"):"0")+'</td>'+
+         '<td><button class="btn sm g" onclick="Register.detail(\'vessels\',\''+x.id+'\')">Open</button></td></tr>';
+    });
+    h+='</tbody></table></div></div></div>';
+  }
+  setTimeout(App.refreshAlertBadge,0);
+  return h;
+ },
+
+ printAlerts:function(){
+  var al=Alerts.all();
+  if(!al.length) return UI.alert("There is nothing outstanding to print.");
+  var rows=al.map(function(a){ return '<tr><td>'+(a.k==="bad"?"HIGH":a.k==="warn"?"MEDIUM":"LOW")+'</td><td>'+esc(a.t)+'</td><td>'+esc(a.s)+'</td></tr>'; }).join("");
+  Print.show("FLEET ACTION ITEMS","All vessels",'<table class="pgrid"><thead><tr><th style="width:70px">Priority</th><th>Item</th><th>Detail</th></tr></thead><tbody>'+rows+'</tbody></table>',true);
+ },
+
+ statusboard:function(){
+  var v=DB.vessels||[];
+  if(!v.length) return '<div class="card"><div class="empty"><b>No vessels yet</b>Add vessels in the Vessels tab.</div></div>';
+  var h='<div class="card"><h2>Vessel status board<span class="r"><button class="btn sm g" onclick="Views.printStatus()">Print</button></span></h2><div class="body tight"><div class="tw"><table class="grid">'+
+    '<thead><tr><th>Vessel</th><th>Status</th><th>Last report</th><th>Position / activity</th><th>Fuel ROB (L)</th><th>Crew</th><th>Charterer</th><th></th></tr></thead><tbody>';
+  sortBy(v,"name").forEach(function(x){
+    var reps=(DB.dailyreports||[]).filter(function(r){return r.vessel===x.id;});
+    var last=reps.length? sortBy(reps,"date",true)[0] : null;
+    var cOn=(DB.crew||[]).filter(function(c){return c.vessel===x.id&&c.status==="Onboard";}).length;
+    var stale = last && -days(last.date)>3;
+    h+='<tr><td><b>'+esc(x.name)+'</b></td><td>'+Register.statusCell(last?last.status||x.status:x.status)+'</td>'+
+       '<td>'+(last? (dmy(last.date)+(stale?' '+pill("stale","warn"):"")) : pill("none","neu"))+'</td>'+
+       '<td>'+esc(last?((last.location||"")+(last.activity?" — "+last.activity:"")):"")+'</td>'+
+       '<td>'+(last&&last.fuelROB?qty(last.fuelROB):"")+'</td><td>'+cOn+'</td><td>'+esc(x.charterer||"")+'</td>'+
+       '<td><button class="btn sm o" onclick="App.go(\'fleet\',\'dailyreports\');setTimeout(function(){Register.form(\'dailyreports\')},80)">Add report</button></td></tr>';
+  });
+  return h+'</tbody></table></div></div></div>';
+ },
+
+ printStatus:function(){
+  var rows=sortBy(DB.vessels||[],"name").map(function(x){
+    var reps=(DB.dailyreports||[]).filter(function(r){return r.vessel===x.id;});
+    var last=reps.length? sortBy(reps,"date",true)[0] : null;
+    var cOn=(DB.crew||[]).filter(function(c){return c.vessel===x.id&&c.status==="Onboard";}).length;
+    return '<tr><td>'+esc(x.name)+'</td><td>'+esc(last?(last.status||x.status||""):(x.status||""))+'</td><td>'+esc(last?dmy(last.date):"")+'</td>'+
+           '<td>'+esc(last?((last.location||"")+(last.activity?" — "+last.activity:"")):"")+'</td><td>'+esc(last&&last.fuelROB?qty(last.fuelROB):"")+'</td><td>'+cOn+'</td><td>'+esc(x.charterer||"")+'</td></tr>';
+  }).join("");
+  Print.show("VESSEL STATUS BOARD","All vessels",'<table class="pgrid"><thead><tr><th>Vessel</th><th>Status</th><th>Last report</th><th>Position / activity</th><th>Fuel ROB (L)</th><th>Crew</th><th>Charterer</th></tr></thead><tbody>'+rows+'</tbody></table>',true);
+ },
+
+ manning:function(){
+  var v=DB.vessels||[];
+  if(!v.length) return '<div class="card"><div class="empty"><b>No vessels yet</b>Add vessels before building the manning picture.</div></div>';
+  var h='';
+  sortBy(v,"name").forEach(function(x){
+    var list=(DB.crew||[]).filter(function(c){return c.vessel===x.id&&c.status!=="Separated";});
+    list.sort(function(a,b){ return RANKS.indexOf(a.rank)-RANKS.indexOf(b.rank); });
+    var onboard=list.filter(function(c){return c.status==="Onboard";}).length;
+    var short = x.manning? num(x.manning)-onboard : 0;
+    h+='<div class="card"><h2>'+esc(x.name)+' — '+onboard+' on board'+(x.manning?' of '+qty(x.manning)+' safe manning':'')+
+       (short>0?' <span class="pill p-bad">short '+short+'</span>':'')+
+       '<span class="r"><button class="btn sm g" onclick="Views.printCrewList(\''+x.id+'\')">Print crew list</button></span></h2>';
+    if(!list.length) h+='<div class="empty">No crew assigned to this vessel yet.</div>';
+    else{
+      h+='<div class="body tight"><div class="tw"><table class="grid"><thead><tr><th>Crew no.</th><th>Name</th><th>Rank</th><th>Status</th><th>Signed on</th><th>Contract ends</th><th>Documents</th></tr></thead><tbody>';
+      list.forEach(function(c){
+        h+='<tr><td>'+esc(c.ccn||"")+'</td><td><b>'+esc(c.name)+'</b></td><td>'+esc(c.rank||"")+'</td><td>'+Register.statusCell(c.status)+'</td>'+
+           '<td>'+esc(dmy(c.signOn))+'</td><td>'+esc(dmy(c.contractEnd))+' '+(c.contractEnd?expiryPill(c.contractEnd,30):"")+'</td>'+
+           '<td>'+SCHEMAS.crew.fields.filter(function(f){return f.k==="docExp";})[0].fn(c)+'</td></tr>';
+      });
+      h+='</tbody></table></div></div>';
+    }
+    h+='</div>';
+  });
+  return h;
+ },
+
+ printCrewList:function(vid){
+  var v=byId(DB.vessels,vid);
+  var list=(DB.crew||[]).filter(function(c){return c.vessel===vid&&c.status==="Onboard";});
+  list.sort(function(a,b){ return RANKS.indexOf(a.rank)-RANKS.indexOf(b.rank); });
+  if(!list.length) return UI.alert("No crew are currently marked On board for this vessel.");
+  var rows=list.map(function(c,i){
+    return '<tr><td>'+(i+1)+'</td><td>'+esc(c.name)+'</td><td>'+esc(c.rank||"")+'</td><td>'+esc(c.sirbNo||"")+'</td><td>'+esc(c.licenseNo||"")+'</td><td>'+esc(dmy(c.dob))+'</td><td>'+esc(dmy(c.signOn))+'</td></tr>';
+  }).join("");
+  var particulars='<table class="pgrid" style="margin-bottom:8px"><tbody>'+
+    '<tr><td style="width:22%"><b>Vessel</b></td><td>'+esc(v.name)+'</td><td style="width:22%"><b>Home port</b></td><td>'+esc(v.homePort||"")+'</td></tr>'+
+    '<tr><td><b>MARINA reg. no.</b></td><td>'+esc(v.marinaReg||"")+'</td><td><b>Gross tonnage</b></td><td>'+esc(v.grt||"")+'</td></tr>'+
+    '<tr><td><b>Voyage from</b></td><td style="height:18px"></td><td><b>Voyage to</b></td><td></td></tr>'+
+    '<tr><td><b>Date of departure</b></td><td></td><td><b>Total crew</b></td><td>'+list.length+'</td></tr></tbody></table>';
+  Print.show("CREW LIST", v.name, particulars+'<table class="pgrid"><thead><tr><th style="width:32px">No.</th><th>Name of crew</th><th>Rank</th><th>SIRB no.</th><th>Licence / COP no.</th><th>Date of birth</th><th>Signed on</th></tr></thead><tbody>'+rows+'</tbody></table>', true, true);
+ },
+
+ spend:function(){
+  var rs=DB.requisitions||[];
+  if(!rs.length) return '<div class="card"><div class="empty"><b>No requisitions yet</b>Spend analysis appears once requisitions are recorded.</div></div>';
+  var byCat={}, byVes={}, byStat={};
+  rs.forEach(function(r){
+    var c=num(r.actualCost)||num(r.estCost);
+    byCat[r.category||"Uncategorised"]=(byCat[r.category||"Uncategorised"]||0)+c;
+    var vn=vesselName(r.vessel)||"Unassigned"; byVes[vn]=(byVes[vn]||0)+c;
+    byStat[r.status||"Requested"]=(byStat[r.status||"Requested"]||0)+1;
+  });
+  var total=rs.reduce(function(s,r){return s+(num(r.actualCost)||num(r.estCost));},0);
+  var open=rs.filter(function(r){return ["Delivered","Cancelled"].indexOf(r.status)<0;}).length;
+  var h='<div class="kpis">'+
+    '<div class="kpi money"><div class="n">'+peso(total)+'</div><div class="l">Total requisition value</div></div>'+
+    kpi(rs.length,"Requisitions raised")+kpi(open,"Still in progress",open?"alert":"")+
+    '<div class="kpi money"><div class="n">'+peso(rs.filter(function(r){return r.status==="Delivered";}).reduce(function(s,r){return s+num(r.actualCost);},0))+'</div><div class="l">Delivered and invoiced</div></div>'+
+    '</div>';
+  h+=tableCard("Spend by category",["Category","Value"],Object.keys(byCat).sort(function(a,b){return byCat[b]-byCat[a];}).map(function(k){return [k,peso(byCat[k])];}));
+  h+=tableCard("Spend by vessel",["Vessel","Value"],Object.keys(byVes).sort(function(a,b){return byVes[b]-byVes[a];}).map(function(k){return [k,peso(byVes[k])];}));
+  h+=tableCard("Requisitions by status",["Status","Count"],Object.keys(byStat).map(function(k){return [k,String(byStat[k])];}));
+  return h;
+ },
+
+ ismstatus:function(){
+  var v=DB.vessels||[];
+  if(!v.length) return '<div class="card"><div class="empty"><b>No vessels yet</b>Drill compliance is tracked per vessel.</div></div>';
+  var h='<div class="card"><h2>Drill compliance<span class="r"><button class="btn sm g" onclick="Views.printDrills()">Print</button></span></h2>'+
+    '<div class="body"><p style="margin:0 0 10px;font-size:13px;color:#5d7480">Abandon ship and fire drills are tracked on a monthly interval. Other drills are shown for the record.</p></div>'+
+    '<div class="body tight"><div class="tw"><table class="grid"><thead><tr><th>Vessel</th><th>Drill</th><th>Last held</th><th>Next due</th><th>Standing</th></tr></thead><tbody>';
+  sortBy(v,"name").forEach(function(x){
+    DRILL_TYPES.forEach(function(d){
+      var last=DrillPlan.lastFor(x.id,d);
+      var mandatory=DrillPlan.mandatory.indexOf(d)>=0;
+      if(!last && !mandatory) return;
+      var next = last? new Date(new Date(last).getTime()+31*86400000).toISOString().slice(0,10) : "";
+      h+='<tr><td>'+esc(x.name)+'</td><td>'+esc(d)+(mandatory?' '+pill("monthly","info"):"")+'</td><td>'+(last?esc(dmy(last)):pill("never","bad"))+'</td>'+
+         '<td>'+esc(dmy(next))+'</td><td>'+(last? expiryPill(next,7,"Overdue","Due") : pill("Not yet held","bad"))+'</td></tr>';
+    });
+  });
+  return h+'</tbody></table></div></div></div>';
+ },
+
+ printDrills:function(){
+  var rows="";
+  sortBy(DB.vessels||[],"name").forEach(function(x){
+    DRILL_TYPES.forEach(function(d){
+      var last=DrillPlan.lastFor(x.id,d), mandatory=DrillPlan.mandatory.indexOf(d)>=0;
+      if(!last&&!mandatory) return;
+      var next=last? new Date(new Date(last).getTime()+31*86400000).toISOString().slice(0,10):"";
+      rows+='<tr><td>'+esc(x.name)+'</td><td>'+esc(d)+'</td><td>'+esc(last?dmy(last):"Not held")+'</td><td>'+esc(dmy(next))+'</td><td>'+(last?(days(next)<0?"OVERDUE":"In order"):"OVERDUE")+'</td></tr>';
+    });
+  });
+  Print.show("DRILL COMPLIANCE RECORD","All vessels",'<table class="pgrid"><thead><tr><th>Vessel</th><th>Drill</th><th>Last held</th><th>Next due</th><th>Standing</th></tr></thead><tbody>'+rows+'</tbody></table>',true);
+ },
+
+ expiry:function(){
+  var cs=(DB.certificates||[]).filter(function(c){return c.expiry;});
+  if(!cs.length) return '<div class="card"><div class="empty"><b>No certificate expiry dates recorded</b>Add certificates with an expiry date to build the renewal plan.</div></div>';
+  var sorted=sortBy(cs,"expiry");
+  function band(d){ return d<0?"Expired":d<=30?"Within 30 days":d<=60?"31 to 60 days":d<=90?"61 to 90 days":"More than 90 days"; }
+  var groups={};
+  sorted.forEach(function(c){ var b=band(days(c.expiry)); (groups[b]=groups[b]||[]).push(c); });
+  var order=["Expired","Within 30 days","31 to 60 days","61 to 90 days","More than 90 days"];
+  var h='<div class="card"><h2>Renewal plan<span class="r"><button class="btn sm g" onclick="Views.printExpiry()">Print</button></span></h2><div class="body tight">';
+  order.forEach(function(b){
+    if(!groups[b]) return;
+    h+='<div style="padding:10px 14px;background:#eaf1f4;font-weight:700;color:#0B3D56;font-size:13px">'+esc(b)+' — '+groups[b].length+'</div>';
+    h+='<div class="tw"><table class="grid"><thead><tr><th>Holder</th><th>Certificate</th><th>Number</th><th>Issued by</th><th>Expiry</th><th>Standing</th><th>Renewal by</th></tr></thead><tbody>';
+    groups[b].forEach(function(c){
+      h+='<tr><td>'+esc(c.vessel?vesselName(c.vessel):"Company")+'</td><td><b>'+esc(c.name)+'</b></td><td>'+esc(c.certNo||"")+'</td><td>'+esc(c.issuer||"")+'</td>'+
+         '<td>'+esc(dmy(c.expiry))+'</td><td>'+expiryPill(c.expiry,60)+'</td><td>'+esc(c.renewalOwner||"")+'</td></tr>';
+    });
+    h+='</tbody></table></div>';
+  });
+  return h+'</div></div>';
+ },
+
+ printExpiry:function(){
+  var cs=sortBy((DB.certificates||[]).filter(function(c){return c.expiry;}),"expiry");
+  if(!cs.length) return UI.alert("No certificate expiry dates recorded.");
+  var rows=cs.map(function(c){
+    var d=days(c.expiry);
+    return '<tr><td>'+esc(c.vessel?vesselName(c.vessel):"Company")+'</td><td>'+esc(c.name)+'</td><td>'+esc(c.certNo||"")+'</td><td>'+esc(c.issuer||"")+'</td><td>'+esc(dmy(c.issued))+'</td><td>'+esc(dmy(c.expiry))+'</td><td>'+(d<0?"EXPIRED":d+" days")+'</td></tr>';
+  }).join("");
+  Print.show("CERTIFICATE RENEWAL PLAN","All vessels and company certificates",'<table class="pgrid"><thead><tr><th>Holder</th><th>Certificate</th><th>Number</th><th>Issued by</th><th>Issued</th><th>Expiry</th><th>Remaining</th></tr></thead><tbody>'+rows+'</tbody></table>',true);
+ },
+
+ voyresult:function(){
+  var vs=DB.voyages||[];
+  if(!vs.length) return '<div class="card"><div class="empty"><b>No voyages recorded</b>Voyage results appear once voyages are entered.</div></div>';
+  var byV={};
+  vs.forEach(function(x){
+    var n=vesselName(x.vessel)||"Unassigned";
+    var o=byV[n]=byV[n]||{rev:0,fuel:0,port:0,other:0,n:0};
+    o.rev+=num(x.revenue); o.fuel+=num(x.fuelCost); o.port+=num(x.portCharges); o.other+=num(x.otherCost); o.n++;
+  });
+  var tot={rev:0,fuel:0,port:0,other:0,n:0};
+  Object.keys(byV).forEach(function(k){ var o=byV[k]; tot.rev+=o.rev; tot.fuel+=o.fuel; tot.port+=o.port; tot.other+=o.other; tot.n+=o.n; });
+  var net=tot.rev-tot.fuel-tot.port-tot.other;
+  var h='<div class="kpis">'+
+    '<div class="kpi money"><div class="n">'+peso(tot.rev)+'</div><div class="l">Revenue recorded</div></div>'+
+    '<div class="kpi money"><div class="n">'+peso(tot.fuel+tot.port+tot.other)+'</div><div class="l">Voyage costs</div></div>'+
+    '<div class="kpi money '+(net<0?"danger":"")+'"><div class="n">'+peso(net)+'</div><div class="l">Net voyage result</div></div>'+
+    kpi(tot.n,"Voyages recorded")+'</div>';
+  var rows=Object.keys(byV).sort().map(function(k){
+    var o=byV[k], n=o.rev-o.fuel-o.port-o.other;
+    return [k,String(o.n),peso(o.rev),peso(o.fuel),peso(o.port),peso(o.other),'<b style="color:'+(n<0?"#b3261e":"#1a7f4b")+'">'+peso(n)+'</b>'];
+  });
+  h+=tableCard("Result by vessel",["Vessel","Voyages","Revenue","Fuel","Port charges","Other","Net"],rows,'<button class="btn sm g" onclick="Views.printVoyResult()">Print</button>');
+  return h;
+ },
+
+ printVoyResult:function(){
+  var vs=sortBy(DB.voyages||[],"atd",true);
+  if(!vs.length) return UI.alert("No voyages recorded.");
+  var rows=vs.map(function(x){
+    var n=num(x.revenue)-num(x.fuelCost)-num(x.portCharges)-num(x.otherCost);
+    return '<tr><td>'+esc(x.voyageNo||"")+'</td><td>'+esc(vesselName(x.vessel))+'</td><td>'+esc(x.charterer||"")+'</td><td>'+esc(x.loadPort||"")+' / '+esc(x.dischPort||"")+'</td>'+
+      '<td>'+esc(dmy(x.atd))+'</td><td>'+esc(dmy(x.ata))+'</td><td style="text-align:right">'+peso(x.revenue)+'</td>'+
+      '<td style="text-align:right">'+peso(num(x.fuelCost)+num(x.portCharges)+num(x.otherCost))+'</td><td style="text-align:right">'+peso(n)+'</td></tr>';
+  }).join("");
+  Print.show("VOYAGE RESULT REPORT","All vessels",'<table class="pgrid"><thead><tr><th>Voyage</th><th>Vessel</th><th>Charterer</th><th>Load / discharge</th><th>ATD</th><th>ATA</th><th>Revenue</th><th>Costs</th><th>Net</th></tr></thead><tbody>'+rows+'</tbody></table>',true);
+ },
+
+ fuelsummary:function(){
+  var b=DB.bunkers||[], c=DB.fuellog||[];
+  if(!b.length&&!c.length) return '<div class="card"><div class="empty"><b>No fuel data yet</b>Record bunkering and consumption to see efficiency by vessel.</div></div>';
+  var litres=b.reduce(function(s,x){return s+num(x.litres);},0);
+  var cost=b.reduce(function(s,x){return s+num(x.litres)*num(x.price);},0);
+  var avg=litres?cost/litres:0;
+  var used=0, hrs=0, expd=0;
+  c.forEach(function(x){ var k=FuelLog.calc(x); used+=k.used; hrs+=k.hours; expd+=k.expected; });
+  var h='<div class="kpis">'+
+    '<div class="kpi money"><div class="n">'+qty(litres)+' L</div><div class="l">Fuel bunkered</div></div>'+
+    '<div class="kpi money"><div class="n">'+peso(cost)+'</div><div class="l">Fuel cost</div></div>'+
+    '<div class="kpi money"><div class="n">'+peso(avg)+'</div><div class="l">Average price per litre</div></div>'+
+    '<div class="kpi money"><div class="n">'+qty(used)+' L</div><div class="l">Fuel consumed</div></div>'+
+    '<div class="kpi money"><div class="n">'+(hrs?qty(used/hrs,1):"—")+' L/hr</div><div class="l">Fleet average consumption</div></div>'+
+    '<div class="kpi money'+(expd>0&&Math.abs((used-expd)/expd*100)>10?" danger":"")+'"><div class="n">'+(expd>0?((used-expd)/expd*100>0?"+":"")+((used-expd)/expd*100).toFixed(1)+"%":"—")+'</div><div class="l">Variance against declared rates</div></div>'+
+    '</div>';
+  var byV={};
+  b.forEach(function(x){ var n=vesselName(x.vessel)||"Unassigned"; var o=byV[n]=byV[n]||{l:0,c:0,u:0,h:0}; o.l+=num(x.litres); o.c+=num(x.litres)*num(x.price); });
+  c.forEach(function(x){ var n=vesselName(x.vessel)||"Unassigned"; var o=byV[n]=byV[n]||{l:0,c:0,u:0,h:0,e:0}; var k=FuelLog.calc(x); o.u+=k.used; o.h+=k.hours; o.e+=k.expected; });
+  var rows=Object.keys(byV).sort().map(function(k){
+    var o=byV[k], p = o.e>0? ((o.u-o.e)/o.e)*100 : null;
+    return [k,qty(o.l)+" L",peso(o.c),qty(o.u)+" L",qty(o.h,1),o.h?qty(o.u/o.h,1)+" L/hr":"—",
+            p===null?"—":pill((p>0?"+":"")+p.toFixed(1)+"%", Math.abs(p)>10?"bad":(Math.abs(p)>5?"warn":"ok"))];
+  });
+  h+=tableCard("Fuel by vessel",["Vessel","Bunkered","Cost","Consumed","Hours run","Actual rate","Variance"],rows,'<button class="btn sm g" onclick="Views.printFuel()">Print</button>');
+  return h;
+ },
+
+ printFuel:function(){
+  var byV={};
+  (DB.bunkers||[]).forEach(function(x){ var n=vesselName(x.vessel)||"Unassigned"; var o=byV[n]=byV[n]||{l:0,c:0,u:0,h:0}; o.l+=num(x.litres); o.c+=num(x.litres)*num(x.price); });
+  (DB.fuellog||[]).forEach(function(x){ var n=vesselName(x.vessel)||"Unassigned"; var o=byV[n]=byV[n]||{l:0,c:0,u:0,h:0}; var k=FuelLog.calc(x); o.u+=k.used; o.h+=k.hours; });
+  var keys=Object.keys(byV).sort();
+  if(!keys.length) return UI.alert("No fuel data recorded.");
+  var rows=keys.map(function(k){ var o=byV[k];
+    return '<tr><td>'+esc(k)+'</td><td style="text-align:right">'+qty(o.l)+'</td><td style="text-align:right">'+peso(o.c)+'</td><td style="text-align:right">'+qty(o.u)+'</td><td style="text-align:right">'+qty(o.h,1)+'</td><td style="text-align:right">'+(o.h?qty(o.u/o.h,1):"—")+'</td></tr>';
+  }).join("");
+  Print.show("FUEL MANAGEMENT SUMMARY","All vessels",'<table class="pgrid"><thead><tr><th>Vessel</th><th>Bunkered (L)</th><th>Cost</th><th>Consumed (L)</th><th>Running hours</th><th>L/hr</th></tr></thead><tbody>'+rows+'</tbody></table>',true);
+ },
+
+ reports:function(){
+  var items=[
+    ["Fleet action items","Every expiry, overdue job and open finding across the fleet, ranked by priority.","Views.printAlerts()"],
+    ["Vessel status board","Where each vessel is, what it is doing and when it last reported.","Views.printStatus()"],
+    ["Certificate renewal plan","Certificates grouped by how soon they fall due.","Views.printExpiry()"],
+    ["Drill compliance record","Abandon ship and fire drills against the monthly interval.","Views.printDrills()"],
+    ["Maintenance status","Planned jobs by vessel with overdue items marked.","Reports.pms()"],
+    ["Open defects report","Outstanding defects and repairs with target dates.","Reports.defects()"],
+    ["Crew list by vessel","Domestic crew list in the format used for port clearance.","Reports.crewPicker()"],
+    ["Crew document validity","Contract and document expiries across the roster.","Reports.crewDocs()"],
+    ["Voyage result report","Revenue against voyage costs, per voyage and per vessel.","Views.printVoyResult()"],
+    ["Fuel management summary","Bunkering, consumption and litres per running hour.","Views.printFuel()"],
+    ["Fuel variance report","Daily reported fuel against the declared rate for each engine.","FuelLog.printVariance()"],
+    ["Procurement status","Requisitions with supplier, cost and delivery status.","Reports.procurement()"],
+    ["Safety performance","Drills held, reports raised and audit findings for a period.","Reports.safety()"],
+    ["Open findings register","Every non-conformity and observation not yet verified as closed.","Reports.findings()"]
+  ];
+  var h='<div class="card"><h2>Printable reports</h2><div class="body tight"><div class="tw"><table class="grid"><thead><tr><th>Report</th><th>What it contains</th><th></th></tr></thead><tbody>';
+  items.forEach(function(i){
+    h+='<tr><td><b>'+esc(i[0])+'</b></td><td>'+esc(i[1])+'</td><td><button class="btn sm o" onclick="'+i[2]+'">Build</button></td></tr>';
+  });
+  h+='</tbody></table></div></div></div>';
+  h+='<div class="card"><h2>Data held in this browser</h2><div class="body"><div class="dl">';
+  [["vessels","Vessels"],["crew","Crew"],["certificates","Certificates"],["pmsjobs","Maintenance jobs"],["components","Components"],["defects","Defects"],
+   ["requisitions","Requisitions"],["drills","Drills"],["incidents","Safety reports"],["audits","Audits"],["findings","Audit findings"],["voyages","Voyages"],["bunkers","Bunkering"],
+   ["fuellog","Daily fuel entries"],["engines","Engines registered"],["dailyreports","Daily reports"],["crewchange","Crew changes"]].forEach(function(p){
+    h+='<div class="i"><span>'+p[1]+'</span><b>'+((DB[p[0]]||[]).length)+'</b></div>';
+  });
+  h+='</div><p style="font-size:12.5px;color:#5d7480;margin:12px 0 0">Everything is stored only in this browser on this device. Back up regularly, and restore the backup on any other device to carry the data across.</p></div></div>';
+  return h;
+ }
+};
+
+function kpi(n,label,cls){ return '<div class="kpi '+(cls||"")+'"><div class="n">'+n+'</div><div class="l">'+esc(label)+'</div></div>'; }
+function tableCard(title,heads,rows,extra){
+  var h='<div class="card"><h2>'+esc(title)+(extra?'<span class="r">'+extra+'</span>':'')+'</h2>';
+  if(!rows.length) return h+'<div class="empty">No data.</div></div>';
+  h+='<div class="body tight"><div class="tw"><table class="grid"><thead><tr>'+heads.map(function(x){return '<th>'+esc(x)+'</th>';}).join("")+'</tr></thead><tbody>';
+  rows.forEach(function(r){ h+='<tr>'+r.map(function(c){return '<td>'+c+'</td>';}).join("")+'</tr>'; });
+  return h+'</tbody></table></div></div></div>';
+}
+
+/* =====================================================================
+   FUEL — engine register, daily consumption entry and variance check
+   Expected fuel = (hours at sea x rate at sea) + (hours in port x rate in port)
+   per engine. Reported against expected, flagged outside the tolerance.
+   ===================================================================== */
+
+function shortTag(unit){
+  if(!unit) return "";
+  if(ENGINE_TAGS[unit]) return ENGINE_TAGS[unit];
+  var m=String(unit).match(/No\.(\d)/), side=/\(P\)/.test(unit)?" (P)":(/\(S\)/.test(unit)?" (S)":"");
+  return (/Main/i.test(unit)?"ME":"AE")+(m?m[1]:"")+side;
+}
+function enginesFor(vid){
+  return (DB.engines||[]).filter(function(e){return e.vessel===vid;})
+    .sort(function(a,b){
+      var ia=ENGINE_UNITS.indexOf(a.unit), ib=ENGINE_UNITS.indexOf(b.unit);
+      if(ia<0) ia=99; if(ib<0) ib=99;
+      return ia-ib || String(a.unit).localeCompare(String(b.unit));
+    });
+}
+function findEngine(vid,unit){
+  var l=(DB.engines||[]).filter(function(e){return e.vessel===vid&&e.unit===unit;});
+  return l.length?l[0]:null;
+}
+
+/* fuel grades only — lube, hydraulic oil and grease do not move the fuel ROB */
+function isFuelGrade(g){ return /diesel|gas oil/i.test(String(g||"")); }
+
+var FuelLog={
+
+  /* a report is stamped at its own date and time; an untimed one closes the day.
+     a bunkering with no time is treated as start of day, so older records behave
+     exactly as they did before times were recorded.                              */
+  stamp:function(rec){ return String(rec.date||"")+"T"+(hhmm(rec.time)||"2359"); },
+  bunkerStamp:function(b){ return String(b.date||"")+"T"+(hhmm(b.time)||"0000"); },
+
+  /* bunkers taken between the previous report and this one */
+  receivedFor:function(rec){
+    var to=FuelLog.stamp(rec);
+    var prev=FuelLog.prevEntry(rec);
+    var from = prev? FuelLog.stamp(prev) : String(rec.date||"")+"T00:00";
+    return (DB.bunkers||[]).filter(function(b){
+      if(b.vessel!==rec.vessel || !isFuelGrade(b.grade)) return false;
+      var st=FuelLog.bunkerStamp(b);
+      return prev? (st>from && st<=to) : (st>=from && st<=to);
+    }).sort(function(a,b2){ return FuelLog.bunkerStamp(a)<FuelLog.bunkerStamp(b2)?-1:1; });
+  },
+
+  /* the report immediately before this one for the same vessel */
+  prevEntry:function(rec){
+    return FuelLog.previous(rec.vessel, FuelLog.key(rec), rec.id);
+  },
+
+  /* entries are chained by date, then by the order they were created on that date,
+     so several reports on one day (departure, noon, arrival) follow each other       */
+  key:function(rec){
+    return FuelLog.stamp(rec)+"|"+String(rec.created||"\uffff");
+  },
+  previous:function(vid,key,excludeId){
+    var list=(DB.fuellog||[]).filter(function(x){
+      return x.vessel===vid && x.id!==excludeId && FuelLog.key(x)<key;
+    });
+    if(!list.length) return null;
+    list.sort(function(a,b){ var ka=FuelLog.key(a), kb=FuelLog.key(b); return ka<kb?1:(ka>kb?-1:0); });
+    return list[0];
+  },
+
+  /* the closing ROB of the previous report for this vessel — what this entry opens with */
+  carried:function(vid,date,excludeId,created,time){
+    var p=FuelLog.previous(vid, FuelLog.key({date:date,time:time,created:created}), excludeId);
+    if(!p) return null;
+    return {value:FuelLog.closing(p,0), date:p.date, time:p.time||"", ref:p.refNo||"", type:p.reportType||""};
+  },
+
+  /* last bunkering before this date that recorded a ROB — offered as a starting figure */
+  seedFromBunker:function(vid,date){
+    var l=(DB.bunkers||[]).filter(function(b){
+      return b.vessel===vid && isFuelGrade(b.grade) && String(b.robAfter||"").trim()!=="" && String(b.date)<=String(date);
+    });
+    if(!l.length) return null;
+    var b=sortBy(l,"date",true)[0];
+    return {value:num(b.robAfter), date:b.date, ref:b.refNo||""};
+  },
+
+  /* closing ROB of an entry: the sounding if the Master gave one, else the calculated figure */
+  closing:function(rec,depth){
+    if(!rec||(depth||0)>60) return null;
+    if(String(rec.robEnd||"").trim()!=="") return num(rec.robEnd);
+    var b=FuelLog.balance(rec,(depth||0)+1);
+    return b.calculated;
+  },
+
+  /* opening + received - consumed = calculated, against the sounding */
+  balance:function(rec,depth){
+    var consumed=FuelLog.calc(rec).used;
+    var list=FuelLog.receivedFor(rec);
+    var recv=list.reduce(function(t,b){return t+num(b.litres);},0);
+    var opening=null, source="";
+    if(String(rec.openingROB||"").trim()!==""){ opening=num(rec.openingROB); source="entered"; }
+    else{
+      var p=FuelLog.prevEntry(rec);
+      if(p){ opening=FuelLog.closing(p,(depth||0)+1); source="carried forward from "+(p.refNo?p.refNo+" · ":"")+dmy(p.date)+(p.time?" "+hhmm(p.time):""); }
+    }
+    var calculated = opening===null? null : opening+recv-consumed;
+    var sounded = String(rec.robEnd||"").trim()===""? null : num(rec.robEnd);
+    var diff = (calculated===null||sounded===null)? null : sounded-calculated;
+    /* allow the greater of 50 litres or 2% of the calculated figure for sounding error */
+    var allow = calculated===null? 0 : Math.max(50, Math.abs(calculated)*0.02);
+    return {opening:opening,source:source,received:recv,list:list,bunkerings:list.length,
+            consumed:consumed,calculated:calculated,sounded:sounded,diff:diff,allow:allow,
+            flag:(diff!==null && Math.abs(diff)>allow)};
+  },
+
+  robPill:function(b){
+    if(b.diff===null) return pill("—","neu");
+    var v=(b.diff>0?"+":"")+qty(b.diff)+" L";
+    return b.flag? pill(v+" — check","bad") : pill(v,"ok");
+  },
+
+  /* ---- compute one record ---- */
+  calc:function(rec){
+    var out={rows:[],used:0,expected:0,hours:0,flags:0,worst:0,noStandard:0,usedMain:0,usedAux:0,hoursMain:0,hoursAux:0};
+    (rec.rows||[]).forEach(function(r){
+      var e=findEngine(rec.vessel,r.unit);
+      var rs=e?num(e.rateSea):0, rp=e?num(e.ratePort):0;
+      var tol=e&&e.tolerance!==""&&e.tolerance!=null? num(e.tolerance) : 10;
+      var sea=num(r.seaHrs), port=num(r.portHrs), used=num(r.used);
+      var exp=sea*rs+port*rp, hrs=sea+port;
+      var pct = exp>0 ? ((used-exp)/exp)*100 : null;
+      var state="ok";
+      if(!e) state="noengine";
+      else if(exp<=0 && used>0) state="nostandard";
+      else if(pct===null) state="none";
+      else if(Math.abs(pct)>tol) state="off";
+      if(state==="off") out.flags++;
+      if(state==="nostandard"||state==="noengine") out.noStandard++;
+      if(pct!==null && Math.abs(pct)>Math.abs(out.worst)) out.worst=pct;
+      out.rows.push({unit:r.unit,tag:shortTag(r.unit),sea:sea,port:port,used:used,
+                     rateSea:rs,ratePort:rp,tol:tol,expected:exp,hours:hrs,pct:pct,state:state});
+      out.used+=used; out.expected+=exp; out.hours+=hrs;
+      if(/Main/i.test(r.unit)){ out.usedMain+=used; out.hoursMain+=hrs; } else { out.usedAux+=used; out.hoursAux+=hrs; }
+    });
+    out.pct = out.expected>0 ? ((out.used-out.expected)/out.expected)*100 : null;
+    return out;
+  },
+
+  variancePill:function(c){
+    if(c.noStandard && !c.flags) return pill("No standard set","neu");
+    if(c.pct===null) return pill("—","neu");
+    var v=(c.pct>0?"+":"")+c.pct.toFixed(1)+"%";
+    if(c.flags) return pill(v+" — out of range","bad");
+    if(Math.abs(c.pct)>5) return pill(v,"warn");
+    return pill(v,"ok");
+  },
+
+  /* ---- list view ---- */
+  view:function(){
+    var rows=(DB.fuellog||[]).filter(function(r){
+      if(App.filter.vessel && r.vessel!==App.filter.vessel) return false;
+      if(!App.filter.q) return true;
+      var q=App.filter.q.toLowerCase();
+      return (vesselName(r.vessel)+" "+(r.refNo||"")+" "+(r.voyage||"")+" "+(r.remarks||"")).toLowerCase().indexOf(q)>=0;
+    });
+    rows.sort(function(a,b){ var ka=FuelLog.key(a), kb=FuelLog.key(b); return ka<kb?1:(ka>kb?-1:0); });
+    var h='<div class="card"><h2>Daily fuel consumption<span class="r">'+
+      '<button class="btn sm o" onclick="FuelLog.form()">Add daily entry</button>'+
+      '<button class="btn sm g" onclick="FuelLog.csv()">Export CSV</button>'+
+      '<button class="btn sm g" onclick="FuelLog.print()">Print</button></span></h2>';
+    h+='<div class="toolbar">'+
+      '<input type="text" class="grow" placeholder="Search entries" value="'+esc(App.filter.q)+'" oninput="App.filter.q=this.value;App.render()">'+
+      '<select onchange="App.filter.vessel=this.value;App.render()"><option value="">All vessels</option>'+
+      vesselOpts().map(function(o){return '<option value="'+o.v+'"'+(App.filter.vessel===o.v?" selected":"")+'>'+esc(o.l)+'</option>';}).join("")+'</select>'+
+      '<span style="color:#5d7480;font-size:12.5px">'+rows.length+' entr'+(rows.length===1?"y":"ies")+'</span></div>';
+    if(!rows.length){
+      h+='<div class="empty"><b>No daily entries yet</b>Register the engines for each vessel first, then encode the daily figures here.</div></div>';
+      return h;
+    }
+    h+='<div class="body tight"><div class="tw"><table class="grid"><thead><tr>'+
+      '<th>Ref.</th><th>Date</th><th>Time</th><th>Report type</th><th>Vessel</th><th>Hours run</th><th>Reported (L)</th><th>Expected (L)</th><th>Variance</th><th>Bunkered (L)</th><th>ROB calculated</th><th>ROB sounded</th><th>ROB check</th><th>Actions</th></tr></thead><tbody>';
+    rows.forEach(function(r){
+      var c=FuelLog.calc(r), b=FuelLog.balance(r);
+      h+='<tr><td>'+esc(r.refNo||"")+'</td><td>'+esc(dmy(r.date))+'</td><td>'+esc(hhmm(r.time))+'</td><td>'+(r.reportType?pill(r.reportType.split(" — ")[0],"info"):"")+'</td><td>'+esc(vesselName(r.vessel))+'</td>'+
+         '<td>'+qty(c.hours,1)+'</td><td><b>'+qty(c.used)+'</b></td><td>'+qty(c.expected)+'</td>'+
+         '<td>'+FuelLog.variancePill(c)+'</td>'+
+         '<td>'+(b.received?qty(b.received):'<span style="color:#9db3bd">—</span>')+'</td>'+
+         '<td>'+(b.calculated===null?'<span style="color:#9db3bd">—</span>':qty(b.calculated))+'</td>'+
+         '<td>'+(b.sounded===null?'<span style="color:#9db3bd">—</span>':'<b>'+qty(b.sounded)+'</b>')+'</td>'+
+         '<td>'+FuelLog.robPill(b)+'</td>'+
+         '<td class="act"><button class="btn sm g" onclick="FuelLog.detail(\''+r.id+'\')">Open</button> '+
+         '<button class="btn sm" onclick="FuelLog.form(\''+r.id+'\')">Edit</button> '+
+         '<button class="btn sm d" onclick="FuelLog.del(\''+r.id+'\')">Delete</button></td></tr>';
+    });
+    return h+'</tbody></table></div></div></div>'+
+      '<p style="font-size:12px;color:#5d7480;margin:0 2px 20px">Expected fuel is calculated per engine as hours at sea &times; rate at sea, plus hours in port &times; rate in port, using the declared rates in the engine register.</p>';
+  },
+
+  /* ---- entry form ---- */
+  form:function(id){
+    if(!DB.vessels.length) return UI.alert("Add a vessel first.");
+    var rec = id? byId(DB.fuellog,id) : null;
+    var vid = rec? rec.vessel : (App.filter.vessel||DB.vessels[0].id);
+    var h='<div class="fgrid">'+
+      '<div class="f"><label>Report type <span class="req">*</span></label><select id="fl_type">'+
+        REPORT_TYPES.map(function(o){return '<option'+((rec&&rec.reportType===o)||(!rec&&o==="Noon at sea")?" selected":"")+'>'+esc(o)+'</option>';}).join("")+'</select></div>'+
+      '<div class="f"><label>Vessel <span class="req">*</span></label><select id="fl_vessel" onchange="FuelLog.buildRows(this.value)">'+
+        vesselOpts().map(function(o){return '<option value="'+o.v+'"'+(vid===o.v?" selected":"")+'>'+esc(o.l)+'</option>';}).join("")+'</select></div>'+
+      '<div class="f"><label>Date <span class="req">*</span></label><input type="date" id="fl_date" value="'+esc(rec?rec.date:today())+'" onchange="FuelLog.live()"></div>'+
+      '<div class="f"><label>Time <span class="req">*</span></label>'+
+        '<input type="text" inputmode="numeric" maxlength="5" placeholder="1200" id="fl_time" value="'+esc(rec?(hhmm(rec.time)||"1200"):"1200")+'" onblur="this.value=hhmm(this.value)||\'1200\';FuelLog.live()" oninput="FuelLog.live()">'+
+        '<div class="hint">Ship&rsquo;s time, 24-hour (e.g. 0800, 1200, 1800). Only bunkering taken after the previous report and up to this time is added here.</div></div>'+
+      '<div class="f"><label>Voyage no.</label><input type="text" id="fl_voyage" value="'+esc(rec?rec.voyage||"":"")+'"></div>'+
+      '<div class="f"><label>Opening ROB (litres)</label><input type="number" step="any" inputmode="decimal" id="fl_open" value="'+esc(rec?rec.openingROB||"":"")+'" oninput="FuelLog.openTouched()">'+
+        '<div class="hint" id="fl_openinfo"></div></div>'+
+      '<div class="f"><label>ROB by sounding at end of day (litres)</label><input type="number" step="any" inputmode="decimal" id="fl_rob" value="'+esc(rec?rec.robEnd||"":"")+'" oninput="FuelLog.live()">'+
+        '<div class="hint">The Master&rsquo;s actual sounding. Leave blank if not taken.</div></div>'+
+      '</div>'+
+      '<div class="fsec" style="margin:12px 0 8px">Consumption by engine</div>'+
+      '<div id="fl_rows"></div>'+
+      '<div class="fsec" style="margin:14px 0 8px">Fuel remaining on board</div>'+
+      '<div id="fl_rob_block"></div>'+
+      '<div class="f full" style="margin-top:12px"><label>Master&rsquo;s remarks</label><textarea id="fl_remarks">'+esc(rec?rec.remarks||"":"")+'</textarea></div>';
+    FuelLog._editing = id||null;
+    FuelLog._openManual = !!(rec && String(rec.openingROB||"").trim()!=="");
+    UI.open((rec?"Edit ":"Add ")+"daily fuel entry", h,
+      '<button class="btn g" onclick="UI.close()">Cancel</button><button class="btn o" onclick="FuelLog.save('+(id?"'"+id+"'":"null")+')">Save entry</button>',"lg");
+    FuelLog.buildRows(vid, rec);
+  },
+
+  buildRows:function(vid, rec){
+    if(!rec) FuelLog._openManual=false;
+    var box=document.getElementById("fl_rows");
+    var eng=enginesFor(vid);
+    if(!eng.length){
+      box.innerHTML='<div class="empty" style="background:#fbfdfe;border:1px dashed #d7e1e6;border-radius:6px">'+
+        '<b>No engines registered for this vessel</b>Add the main and auxiliary engines with their declared consumption rates, then come back to encode daily figures.'+
+        '<div style="margin-top:10px"><button class="btn o" onclick="UI.close();App.go(\'fuel\',\'engines\')">Go to the engine register</button></div></div>';
+      return;
+    }
+    var h='<div class="tw"><table class="grid"><thead><tr><th>Engine</th><th>Declared at sea</th><th>Declared in port</th>'+
+      '<th>Hours at sea</th><th>Hours in port</th><th>Fuel reported (L)</th><th>Expected (L)</th><th>Variance</th></tr></thead><tbody>';
+    eng.forEach(function(e,i){
+      var prev = rec && (rec.rows||[]).filter(function(x){return x.unit===e.unit;})[0];
+      h+='<tr><td><b>'+esc(shortTag(e.unit))+'</b><br><span style="font-size:11px;color:#5d7480">'+esc(e.maker||"")+'</span></td>'+
+        '<td>'+qty(e.rateSea,1)+' L/h</td><td>'+qty(e.ratePort,1)+' L/h</td>'+
+        '<td><input type="number" step="any" inputmode="decimal" style="width:82px;padding:6px;border:1px solid #d7e1e6;border-radius:5px" id="fr_sea_'+i+'" value="'+esc(prev?prev.seaHrs:"")+'" oninput="FuelLog.live()"></td>'+
+        '<td><input type="number" step="any" inputmode="decimal" style="width:82px;padding:6px;border:1px solid #d7e1e6;border-radius:5px" id="fr_port_'+i+'" value="'+esc(prev?prev.portHrs:"")+'" oninput="FuelLog.live()"></td>'+
+        '<td><input type="number" step="any" inputmode="decimal" style="width:96px;padding:6px;border:1px solid #d7e1e6;border-radius:5px" id="fr_used_'+i+'" value="'+esc(prev?prev.used:"")+'" oninput="FuelLog.live()"></td>'+
+        '<td id="fr_exp_'+i+'" style="font-weight:600">—</td><td id="fr_var_'+i+'">—</td>'+
+        '<input type="hidden" id="fr_unit_'+i+'" value="'+esc(e.unit)+'"></tr>';
+    });
+    h+='</tbody><tfoot><tr style="background:#eaf1f4;font-weight:700"><td colspan="5" style="text-align:right">Total consumed (deducted from ROB)</td>'+
+       '<td id="fr_tused">—</td><td id="fr_texp">—</td><td id="fr_tvar">—</td></tr></tfoot></table></div>'+
+       '<div id="fr_warn" style="margin-top:10px"></div>';
+    box.innerHTML=h;
+    FuelLog.live();
+  },
+
+  read:function(){
+    var vid=document.getElementById("fl_vessel").value;
+    var eng=enginesFor(vid), rows=[];
+    eng.forEach(function(e,i){
+      var u=document.getElementById("fr_unit_"+i); if(!u) return;
+      rows.push({unit:u.value,
+        seaHrs:document.getElementById("fr_sea_"+i).value,
+        portHrs:document.getElementById("fr_port_"+i).value,
+        used:document.getElementById("fr_used_"+i).value});
+    });
+    var el=function(i){ var e=document.getElementById(i); return e?e.value:""; };
+    var cur=FuelLog._editing? byId(DB.fuellog,FuelLog._editing) : null;
+    return {vessel:vid, rows:rows, date:el("fl_date"), time:el("fl_time"), openingROB:el("fl_open"), robEnd:el("fl_rob"),
+            id:FuelLog._editing||null, created:cur?cur.created:null};
+  },
+
+  live:function(){
+    var d=FuelLog.read(), c=FuelLog.calc(d);
+    c.rows.forEach(function(r,i){
+      var ex=document.getElementById("fr_exp_"+i), va=document.getElementById("fr_var_"+i);
+      if(!ex) return;
+      ex.textContent = r.expected>0? qty(r.expected)+" L" : "—";
+      if(r.state==="off") va.innerHTML=pill((r.pct>0?"+":"")+r.pct.toFixed(1)+"% \u2014 check","bad");
+      else if(r.state==="nostandard") va.innerHTML=pill("No rate set","warn");
+      else if(r.pct===null) va.innerHTML='<span style="color:#9db3bd">—</span>';
+      else va.innerHTML=pill((r.pct>0?"+":"")+r.pct.toFixed(1)+"%", Math.abs(r.pct)>5?"warn":"ok");
+    });
+    var tu=document.getElementById("fr_tused"); if(!tu) return;
+    tu.textContent=qty(c.used)+" L";
+    document.getElementById("fr_texp").textContent=qty(c.expected)+" L";
+    document.getElementById("fr_tvar").innerHTML=FuelLog.variancePill(c);
+    FuelLog.syncOpening();
+    d.openingROB=(document.getElementById("fl_open")||{value:""}).value;
+    FuelLog.liveROB(d);
+    var w=document.getElementById("fr_warn");
+    if(c.flags){
+      var lines=c.rows.filter(function(r){return r.state==="off";}).map(function(r){
+        return '<li><b>'+esc(r.tag)+'</b>: reported '+qty(r.used)+' L against an expected '+qty(r.expected)+' L for '+qty(r.hours,1)+
+               ' hours run — '+(r.pct>0?"over":"under")+' by '+Math.abs(r.pct).toFixed(1)+'% (tolerance &plusmn;'+r.tol+'%)</li>';
+      }).join("");
+      w.innerHTML='<div style="background:#fbe4e2;border:1px solid #f0bdb8;border-radius:6px;padding:10px 12px;font-size:13px;color:#7a1a15">'+
+        '<b>Out of range — check the figures before saving</b><ul style="margin:6px 0 0;padding-left:18px">'+lines+'</ul>'+
+        '<div style="margin-top:6px;font-size:12.5px">If the figures are correct, save anyway and note the reason in the remarks. The entry will stay flagged on the dashboard.</div></div>';
+    } else w.innerHTML="";
+  },
+
+  openTouched:function(){ FuelLog._openManual=true; FuelLog.live(); },
+
+  /* fill the opening figure from the previous report unless the user typed over it */
+  syncOpening:function(){
+    var fo=document.getElementById("fl_open"); if(!fo) return null;
+    var vid=document.getElementById("fl_vessel").value;
+    var date=document.getElementById("fl_date").value;
+    var cur=FuelLog._editing? byId(DB.fuellog,FuelLog._editing) : null;
+    var tm=(document.getElementById("fl_time")||{value:""}).value;
+    var c=FuelLog.carried(vid,date,FuelLog._editing||null,cur?cur.created:null,tm);
+    if(!FuelLog._openManual){
+      fo.value = (c && c.value!==null)? c.value : "";
+    }
+    return c;
+  },
+
+  liveROB:function(d){
+    var box=document.getElementById("fl_rob_block"); if(!box) return;
+    var b=FuelLog.balance(d);
+    var info=document.getElementById("fl_openinfo");
+    if(info){
+      var c=FuelLog.carried(d.vessel,d.date,FuelLog._editing||null,d.created,d.time);
+      if(FuelLog._openManual && c && c.value!==null && Math.abs(num(d.openingROB)-c.value)>0.001)
+        info.innerHTML='<span style="color:#b6801a">Entered manually. The previous report ('+esc(dmy(c.date))+') closed at <b>'+qty(c.value)+' L</b> — '+
+          '<a href="#" onclick="FuelLog.resetOpening();return false;">use that figure</a>.</span>';
+      else if(c && c.value!==null)
+        info.innerHTML='Linked to '+esc(c.ref?c.ref+" · ":"")+esc(c.type?c.type.split(" — ")[0]+" · ":"")+esc(dmy(c.date))+esc(c.time?" "+hhmm(c.time):"")+' — closing ROB <b>'+qty(c.value)+' L</b>';
+      else{
+        var sd=FuelLog.seedFromBunker(d.vessel,d.date);
+        if(sd) info.innerHTML='First report for this vessel. Last recorded figure was <b>'+qty(sd.value)+' L</b> after '+esc(sd.ref||"bunkering")+' on '+esc(dmy(sd.date))+' — '+
+          '<a href="#" onclick="FuelLog.useSeed('+sd.value+');return false;">use that figure</a>.';
+        else info.textContent="First report for this vessel — enter the opening ROB to start the running balance.";
+      }
+    }
+    var cc=FuelLog.calc(d);
+    var consumedNote = (cc.usedMain&&cc.usedAux)
+      ? ' <span style="color:#5d7480;font-size:12px">(main '+qty(cc.usedMain)+' L + auxiliary '+qty(cc.usedAux)+' L)</span>' : '';
+    var bl=b.list||[];
+    var bunkerLine = bl.length
+      ? bl.map(function(x){ return esc(x.refNo||"")+" \u00B7 "+esc(dmy(x.date))+(x.time?" "+esc(hhmm(x.time)):"")+" \u00B7 "+qty(x.litres)+" L "+esc(x.grade||"")+(x.bdn?" \u00B7 BDN "+esc(x.bdn):"")+(x.port?" \u00B7 "+esc(x.port):""); }).join("<br>")
+      : '<span style="color:#5d7480">No bunkering falls between the previous report and this one.</span>';
+    var rowsHTML=
+      '<div class="tw"><table class="grid" style="min-width:420px"><tbody>'+
+      '<tr><td>Opening ROB</td><td style="text-align:right">'+(b.opening===null?"—":qty(b.opening)+" L")+'</td></tr>'+
+      '<tr><td>Plus bunkers received today'+(b.bunkerings?' <span class="pill p-info">'+b.bunkerings+'</span>':'')+'</td><td style="text-align:right;color:#1a7f4b">'+(b.received?"+"+qty(b.received)+" L":"0 L")+'</td></tr>'+
+      '<tr><td>Less fuel consumed'+consumedNote+'</td><td style="text-align:right;color:#b3261e">'+(b.consumed?"\u2212"+qty(b.consumed)+" L":"0 L")+'</td></tr>'+
+      '<tr style="background:#eaf1f4;font-weight:700"><td>Calculated ROB</td><td style="text-align:right">'+(b.calculated===null?"—":qty(b.calculated)+" L")+'</td></tr>'+
+      '<tr><td>ROB by sounding</td><td style="text-align:right">'+(b.sounded===null?"not taken":qty(b.sounded)+" L")+'</td></tr>'+
+      '<tr><td>Difference</td><td style="text-align:right">'+FuelLog.robPill(b)+'</td></tr>'+
+      '</tbody></table></div>'+
+      '<div style="margin-top:8px;font-size:12.5px;color:#5d7480"><b>Bunkering picked up by this report:</b><br>'+bunkerLine+
+      ' <button type="button" class="btn sm g" style="margin-top:6px" onclick="FuelLog.addBunkerFrom()">Record a bunkering</button></div>';
+    if(b.flag){
+      rowsHTML+='<div style="background:#fbe4e2;border:1px solid #f0bdb8;border-radius:6px;padding:10px 12px;font-size:13px;color:#7a1a15;margin-top:10px">'+
+        '<b>ROB does not balance</b><br>The sounding differs from the calculated figure by '+qty(Math.abs(b.diff))+' L, beyond the '+qty(b.allow)+' L allowance. '+
+        'Check for an unrecorded bunkering, a missed daily entry, or a sounding error before saving.</div>';
+    }
+    box.innerHTML=rowsHTML;
+  },
+
+  resetOpening:function(){ FuelLog._openManual=false; FuelLog.live(); },
+  useSeed:function(v){ var f=document.getElementById("fl_open"); if(f){ f.value=v; FuelLog._openManual=true; FuelLog.live(); } },
+
+  addBunkerFrom:function(){
+    UI.confirm("Leave this entry and open the bunkering register? Anything not yet saved here will be lost.").then(function(ok){
+      if(!ok) return;
+      App.go("fuel","bunkers");
+      setTimeout(function(){ Register.form("bunkers"); },120);
+    });
+  },
+
+  save:function(id){
+    var d=FuelLog.read();
+    var date=document.getElementById("fl_date").value;
+    if(!d.vessel||!date) return UI.alert("Vessel and date are both required.");
+    if(!d.rows.length) return UI.alert("This vessel has no engines registered. Add them in the engine register first.");
+    var any=d.rows.some(function(r){ return num(r.used)>0||num(r.seaHrs)>0||num(r.portHrs)>0; });
+    if(!any) return UI.alert("Enter the hours run and fuel consumed for at least one engine.");
+    var rec = id? byId(DB.fuellog,id) : {id:uid(),created:new Date().toISOString()};
+    if(!rec.created) rec.created=new Date().toISOString();
+    rec.vessel=d.vessel; rec.date=date; rec.rows=d.rows;
+    rec.time=hhmm(document.getElementById("fl_time").value)||"1200";
+    rec.reportType=document.getElementById("fl_type").value;
+    rec.voyage=document.getElementById("fl_voyage").value;
+    var openVal=document.getElementById("fl_open").value;
+    var carried=FuelLog.carried(d.vessel,date,id||null,rec.created,rec.time);
+    /* store the figure only when it differs from the carried one, so a later
+       correction to an earlier report still flows through to this entry */
+    rec.openingROB = (carried && carried.value!==null && String(openVal).trim()!=="" &&
+                      Math.abs(num(openVal)-carried.value)<0.001) ? "" : openVal;
+    rec.robEnd=document.getElementById("fl_rob").value;
+    rec.remarks=document.getElementById("fl_remarks").value;
+    rec.updated=new Date().toISOString();
+    if(!id){ rec.refNo=seq("fuellog","FL-",5); DB.fuellog.push(rec); }
+    save(); FuelLog._editing=null; UI.close(); App.render();
+    var c=FuelLog.calc(rec), b=FuelLog.balance(rec);
+    UI.toast(c.flags? "Saved — consumption flagged as out of range"
+           : (b.flag? "Saved — ROB does not balance" : "Daily entry saved"));
+  },
+
+  del:function(id){
+    var r=byId(DB.fuellog,id);
+    UI.confirm("Delete daily entry "+(r.refNo||"")+" for "+vesselName(r.vessel)+"? This cannot be undone.").then(function(ok){
+      if(!ok) return;
+      DB.fuellog=DB.fuellog.filter(function(x){return x.id!==id;});
+      save(); App.render(); UI.toast("Entry deleted");
+    });
+  },
+
+  detail:function(id){
+    var r=byId(DB.fuellog,id); if(!r) return;
+    var c=FuelLog.calc(r);
+    var h='<div class="dl">'+
+      '<div class="i"><span>Reference</span><b>'+esc(r.refNo||"")+'</b></div>'+
+      '<div class="i"><span>Date and time</span><b>'+esc(dmy(r.date))+esc(r.time?" "+hhmm(r.time):"")+'</b></div>'+
+      '<div class="i"><span>Report type</span><b>'+esc(r.reportType||"—")+'</b></div>'+
+      '<div class="i"><span>Vessel</span><b>'+esc(vesselName(r.vessel))+'</b></div>'+
+      '<div class="i"><span>Voyage</span><b>'+esc(r.voyage||"—")+'</b></div>'+
+      '<div class="i"><span>Total hours run</span><b>'+qty(c.hours,1)+'</b></div>'+
+      '<div class="i"><span>Fuel ROB at end of day</span><b>'+(r.robEnd?qty(r.robEnd)+" L":"—")+'</b></div>'+
+      '</div>';
+    h+='<div class="fsec" style="margin:12px 0 8px">Engine breakdown</div><div class="tw"><table class="grid"><thead><tr>'+
+      '<th>Engine</th><th>Sea hrs</th><th>Port hrs</th><th>Rate sea</th><th>Rate port</th><th>Expected</th><th>Reported</th><th>Variance</th></tr></thead><tbody>';
+    c.rows.forEach(function(x){
+      h+='<tr><td><b>'+esc(x.tag)+'</b></td><td>'+qty(x.sea,1)+'</td><td>'+qty(x.port,1)+'</td>'+
+         '<td>'+qty(x.rateSea,1)+'</td><td>'+qty(x.ratePort,1)+'</td><td>'+qty(x.expected)+'</td><td><b>'+qty(x.used)+'</b></td>'+
+         '<td>'+(x.pct===null?'—':pill((x.pct>0?"+":"")+x.pct.toFixed(1)+"%", x.state==="off"?"bad":(Math.abs(x.pct)>5?"warn":"ok")))+'</td></tr>';
+    });
+    h+='<tr style="background:#eaf1f4;font-weight:700"><td colspan="5" style="text-align:right">Total</td><td>'+qty(c.expected)+'</td><td>'+qty(c.used)+'</td><td>'+FuelLog.variancePill(c)+'</td></tr>';
+    h+='</tbody></table></div>';
+    var b=FuelLog.balance(r);
+    h+='<div class="fsec" style="margin:14px 0 8px">Fuel remaining on board</div><div class="tw"><table class="grid" style="min-width:420px"><tbody>'+
+      '<tr><td>Opening ROB'+(b.source?' <span style="color:#5d7480;font-size:12px">('+esc(b.source)+')</span>':'')+'</td><td style="text-align:right">'+(b.opening===null?"—":qty(b.opening)+" L")+'</td></tr>'+
+      '<tr><td>Plus bunkers received'+(b.bunkerings?' ('+b.bunkerings+')':'')+'</td><td style="text-align:right">'+(b.received?"+"+qty(b.received)+" L":"0 L")+'</td></tr>'+
+      '<tr><td>Less fuel consumed'+((c.usedMain&&c.usedAux)?' <span style="color:#5d7480;font-size:12px">(main '+qty(c.usedMain)+' L + auxiliary '+qty(c.usedAux)+' L)</span>':'')+'</td><td style="text-align:right">'+(b.consumed?"\u2212"+qty(b.consumed)+" L":"0 L")+'</td></tr>'+
+      '<tr style="background:#eaf1f4;font-weight:700"><td>Calculated ROB</td><td style="text-align:right">'+(b.calculated===null?"—":qty(b.calculated)+" L")+'</td></tr>'+
+      '<tr><td>ROB by sounding</td><td style="text-align:right">'+(b.sounded===null?"not taken":qty(b.sounded)+" L")+'</td></tr>'+
+      '<tr><td>Difference</td><td style="text-align:right">'+FuelLog.robPill(b)+'</td></tr></tbody></table></div>';
+    if(r.remarks) h+='<div class="fsec" style="margin:12px 0 6px">Remarks</div><p style="font-size:13.5px;margin:0">'+esc(r.remarks)+'</p>';
+    UI.open("Daily fuel entry", h,
+      '<button class="btn g" onclick="UI.close()">Close</button><button class="btn" onclick="UI.close();FuelLog.form(\''+id+'\')">Edit</button>',"lg");
+  },
+
+  flagged:function(){
+    return (DB.fuellog||[]).filter(function(r){ return FuelLog.calc(r).flags>0; });
+  },
+
+  varianceView:function(){
+    var logs=(DB.fuellog||[]);
+    if(!logs.length) return '<div class="card"><div class="empty"><b>No daily entries yet</b>Encode daily consumption to build the variance report.</div></div>';
+    var flagged=FuelLog.flagged();
+    var tot={used:0,exp:0,hrs:0};
+    logs.forEach(function(r){ var c=FuelLog.calc(r); tot.used+=c.used; tot.exp+=c.expected; tot.hrs+=c.hours; });
+    var pct = tot.exp>0? ((tot.used-tot.exp)/tot.exp)*100 : 0;
+    var h='<div class="kpis">'+
+      '<div class="kpi money"><div class="n">'+qty(tot.used)+' L</div><div class="l">Reported consumption</div></div>'+
+      '<div class="kpi money"><div class="n">'+qty(tot.exp)+' L</div><div class="l">Expected at declared rates</div></div>'+
+      '<div class="kpi money '+(Math.abs(pct)>10?"danger":"")+'"><div class="n">'+(pct>0?"+":"")+pct.toFixed(1)+'%</div><div class="l">Fleet variance</div></div>'+
+      kpi(flagged.length,"Entries out of range",flagged.length?"danger":"")+
+      '</div>';
+    /* per vessel per engine */
+    var byE={};
+    logs.forEach(function(r){
+      var c=FuelLog.calc(r);
+      c.rows.forEach(function(x){
+        var k=r.vessel+"|"+x.unit;
+        var o=byE[k]=byE[k]||{v:vesselName(r.vessel),tag:x.tag,used:0,exp:0,hrs:0,n:0,off:0};
+        o.used+=x.used; o.exp+=x.expected; o.hrs+=x.hours; o.n++; if(x.state==="off") o.off++;
+      });
+    });
+    var rows=Object.keys(byE).sort().map(function(k){
+      var o=byE[k];
+      var p = o.exp>0? ((o.used-o.exp)/o.exp)*100 : null;
+      return [o.v,'<b>'+o.tag+'</b>',String(o.n),qty(o.hrs,1),qty(o.exp),qty(o.used),
+              p===null?"—":pill((p>0?"+":"")+p.toFixed(1)+"%", Math.abs(p)>10?"bad":(Math.abs(p)>5?"warn":"ok")),
+              o.off?pill(o.off+" flagged","bad"):"0",
+              o.hrs?qty(o.used/o.hrs,1)+" L/h":"—"];
+    });
+    h+=tableCard("Variance by engine",["Vessel","Engine","Entries","Hours run","Expected (L)","Reported (L)","Variance","Out of range","Actual rate"],rows,
+      '<button class="btn sm g" onclick="FuelLog.printVariance()">Print</button>');
+    if(flagged.length){
+      var fr=sortBy(flagged,"date",true).map(function(r){
+        var c=FuelLog.calc(r);
+        var worst=c.rows.filter(function(x){return x.state==="off";}).map(function(x){return x.tag+" "+(x.pct>0?"+":"")+x.pct.toFixed(1)+"%";}).join(", ");
+        return [esc(r.refNo||""),esc(dmy(r.date)),esc(vesselName(r.vessel)),esc(worst),qty(c.expected),qty(c.used),
+                '<button class="btn sm g" onclick="FuelLog.detail(\''+r.id+'\')">Open</button>'];
+      });
+      h+=tableCard("Entries needing verification",["Ref.","Date","Vessel","Engine variance","Expected (L)","Reported (L)",""],fr);
+    }
+    return h;
+  },
+
+  printVariance:function(){
+    var logs=sortBy(DB.fuellog||[],"date",true);
+    if(!logs.length) return UI.alert("No daily entries recorded yet.");
+    var rows=logs.map(function(r){
+      var c=FuelLog.calc(r), b=FuelLog.balance(r);
+      return '<tr><td>'+esc(r.refNo||"")+'</td><td>'+esc(dmy(r.date))+'</td><td>'+esc(hhmm(r.time))+'</td><td>'+esc((r.reportType||"").split(" — ")[0])+'</td><td>'+esc(vesselName(r.vessel))+'</td>'+
+        '<td style="text-align:right">'+qty(c.hours,1)+'</td><td style="text-align:right">'+qty(c.expected)+'</td>'+
+        '<td style="text-align:right">'+qty(c.used)+'</td><td style="text-align:right">'+(c.pct===null?"—":(c.pct>0?"+":"")+c.pct.toFixed(1)+"%")+'</td>'+
+        '<td style="text-align:right">'+(b.received?qty(b.received):"")+'</td>'+
+        '<td style="text-align:right">'+(b.calculated===null?"":qty(b.calculated))+'</td>'+
+        '<td style="text-align:right">'+(b.sounded===null?"":qty(b.sounded))+'</td>'+
+        '<td>'+(c.flags?"CONSUMPTION OUT OF RANGE":(b.flag?"ROB DOES NOT BALANCE":"In order"))+'</td></tr>';
+    }).join("");
+    Print.show("FUEL CONSUMPTION VARIANCE REPORT", App.filter.vessel? vesselName(App.filter.vessel):"All vessels",
+      '<table class="pgrid"><thead><tr><th>Ref.</th><th>Date</th><th>Time</th><th>Type</th><th>Vessel</th><th>Hours run</th><th>Expected (L)</th><th>Reported (L)</th><th>Variance</th><th>Bunkered (L)</th><th>ROB calc. (L)</th><th>ROB sounded (L)</th><th>Standing</th></tr></thead><tbody>'+rows+'</tbody></table>',true);
+  },
+
+  csv:function(){
+    var logs=sortBy(DB.fuellog||[],"date",true);
+    if(!logs.length) return UI.alert("There is nothing to export yet.");
+    var lines=['"Ref.","Date","Time","Report type","Vessel","Voyage","Engine","Hours at sea","Hours in port","Rate at sea (L/h)","Rate in port (L/h)","Expected (L)","Reported (L)","Variance %","Standing","Opening ROB (L)","Bunkered (L)","Calculated ROB (L)","Sounded ROB (L)","ROB difference (L)","Remarks"'];
+    logs.forEach(function(r){
+      var c=FuelLog.calc(r), b=FuelLog.balance(r);
+      c.rows.forEach(function(x){
+        lines.push([r.refNo||"",r.date||"",hhmm(r.time),r.reportType||"",vesselName(r.vessel),r.voyage||"",x.tag,x.sea,x.port,x.rateSea,x.ratePort,
+                    x.expected.toFixed(1),x.used,(x.pct===null?"":x.pct.toFixed(1)),
+                    (x.state==="off"?"OUT OF RANGE":"In order"),
+                    (b.opening===null?"":b.opening),b.received,(b.calculated===null?"":b.calculated.toFixed(1)),
+                    (b.sounded===null?"":b.sounded),(b.diff===null?"":b.diff.toFixed(1)),r.remarks||""]
+          .map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(","));
+      });
+    });
+    var blob=new Blob(["\ufeff"+lines.join("\r\n")],{type:"text/csv;charset=utf-8"});
+    var url=URL.createObjectURL(blob), fn="NS-FLEET-fuel-log-"+today()+".csv";
+    var a=document.createElement("a"); a.href=url; a.download=fn; document.body.appendChild(a); a.click();
+    setTimeout(function(){URL.revokeObjectURL(url);a.remove();},1500);
+    UI.toast("CSV prepared: "+fn);
+  },
+
+  print:function(){ FuelLog.printVariance(); }
+};
+
+/* =====================================================================
+   VOYAGE — elapsed time, steaming time, distance and speed
+   ATD and ATA give the elapsed time. Less any stoppage, that is the
+   steaming time. Distance and speed derive from each other: whichever
+   the user is typing into drives the other.
+   ===================================================================== */
+var Voyage={
+  _driver:"distance",
+  driver:function(which){ Voyage._driver=which; },
+
+  when:function(dateId,timeId){
+    var d=(document.getElementById(dateId)||{value:""}).value;
+    if(!d) return null;
+    var t=hhmm((document.getElementById(timeId)||{value:""}).value)||"0000";
+    var dt=new Date(d+"T"+t.slice(0,2)+":"+t.slice(2)+":00");
+    return isNaN(dt)? null : dt;
+  },
+
+  calc:function(which){
+    if(which) Voyage._driver=which;
+    var el=function(i){ return document.getElementById(i); };
+    var fElapsed=el("fld_elapsed"), fSteam=el("fld_steamHours"), fNote=el("fld_passageNote");
+    if(!fElapsed||!fSteam) return;
+    var a=Voyage.when("fld_atd","fld_atdTime"), b=Voyage.when("fld_ata","fld_ataTime");
+    var elapsed=null, note="";
+    if(a&&b){
+      elapsed=(b-a)/3600000;
+      if(elapsed<0){ note="Arrival is before departure — check the dates and times."; elapsed=null; }
+    } else note="Enter both ATD and ATA to work out the passage.";
+    fElapsed.value = elapsed===null? "" : elapsed.toFixed(2);
+
+    var stop=num((el("fld_stopHours")||{value:""}).value);
+    var steam = elapsed===null? null : Math.max(0, elapsed-stop);
+    if(elapsed!==null && stop>elapsed) note="Stoppage is longer than the elapsed time — check the figures.";
+    fSteam.value = steam===null? "" : steam.toFixed(2);
+
+    var fd=el("fld_distance"), fs=el("fld_speed");
+    if(fd&&fs&&steam!==null&&steam>0){
+      if(Voyage._driver==="speed" && num(fs.value)>0){
+        fd.value=(num(fs.value)*steam).toFixed(1);
+      } else if(num(fd.value)>0){
+        fs.value=(num(fd.value)/steam).toFixed(2);
+      }
+      var sp=num(fs.value);
+      if(sp>0 && !note){
+        note = qty(num(fd.value),1)+" NM in "+steam.toFixed(2)+" hrs at "+sp.toFixed(2)+" knots";
+        if(sp>30) note+=" — check, that speed looks high";
+      }
+    }
+    if(fNote) fNote.value=note;
+  }
+};
+
+/* =====================================================================
+   AUDIT — when the next one falls due
+   The interval runs from the date of the audit. Only the most recent
+   audit of each type, for each vessel or the office, can fall due.
+   ===================================================================== */
+var Audit={
+  _manual:false,
+  touch:function(){ Audit._manual=true; },
+
+  open:function(){
+    var nd=document.getElementById("fld_nextDue");
+    Audit._manual = !!(nd && String(nd.value||"").trim()!=="");
+    Audit.calc();
+  },
+
+  calc:function(){
+    var nd=document.getElementById("fld_nextDue"); if(!nd||Audit._manual) return;
+    var d=(document.getElementById("fld_date")||{value:""}).value;
+    var m=num((document.getElementById("fld_intervalMonths")||{value:""}).value);
+    if(!d||m<=0){ nd.value=""; return; }
+    var dt=new Date(d+"T00:00:00");
+    if(isNaN(dt)){ nd.value=""; return; }
+    var day=dt.getDate();
+    dt.setMonth(dt.getMonth()+Math.round(m));
+    /* 31 January plus a month must not roll into March */
+    if(dt.getDate()<day) dt.setDate(0);
+    nd.value=dt.toISOString().slice(0,10);
+  },
+
+  /* the latest audit of each type for each vessel or the office */
+  latest:function(){
+    var byKey={};
+    (DB.audits||[]).forEach(function(a){
+      if(!a.nextDue) return;
+      var k=(a.type||"")+"|"+(a.vessel||"office");
+      if(!byKey[k] || String(a.date)>String(byKey[k].date)) byKey[k]=a;
+    });
+    return Object.keys(byKey).map(function(k){ return byKey[k]; });
+  },
+
+  dueList:function(){
+    return Audit.latest().filter(function(a){ return days(a.nextDue)<=60; })
+      .sort(function(x,y){ return days(x.nextDue)-days(y.nextDue); });
+  }
+};
+
+/* ---------------- Company mark --------------------------------------- */
+/* Container ship in profile. The deck cargo is the NS monogram itself:
+   N stacked in teal, S in orange, sitting on the hatch covers.          */
+function logoSVG(){
+  return '<svg viewBox="0 0 132 92" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="NS Fleet">'+
+    '<g fill="none" stroke="#0E6B76" stroke-width="4" stroke-linecap="round" opacity=".55">'+
+      '<path d="M8 80c6-5 12-5 18 0s12 5 18 0 12-5 18 0 12 5 18 0 12-5 18 0 12 5 18 0"/>'+
+    '</g>'+
+    '<path d="M6 54h120l-6 6-10 12H22L8 58z" fill="#0B3D56"/>'+
+    '<path d="M19 66h93l-5 6H25z" fill="#E1653B"/>'+
+    '<rect x="11" y="34" width="22" height="20" rx="2.5" fill="#0B3D56"/>'+
+    '<g fill="#EAF4F3">'+
+      '<rect x="14.5" y="38" width="5" height="4" rx="1"/>'+
+      '<rect x="22"   y="38" width="5" height="4" rx="1"/>'+
+      '<rect x="14.5" y="45" width="5" height="4" rx="1"/>'+
+      '<rect x="22"   y="45" width="5" height="4" rx="1"/>'+
+    '</g>'+
+    '<rect x="17" y="20" width="10" height="15" rx="2" fill="#E1653B"/>'+
+    '<rect x="17" y="24" width="10" height="3.5" fill="#0B3D56"/>'+
+    '<g font-family="Segoe UI,Helvetica,Arial,sans-serif" font-weight="800" font-size="40" text-anchor="middle">'+
+      '<text x="66" y="53" fill="#0E6B76">N</text>'+
+      '<text x="102" y="53" fill="#E1653B">S</text>'+
+    '</g>'+
+  '</svg>';
+}
+function setFavicon(){
+  try{
+    var link=document.createElement("link");
+    link.rel="icon"; link.type="image/svg+xml";
+    link.href="data:image/svg+xml,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 92"><rect width="132" height="92" rx="12" fill="#EAF4F3"/>'+logoSVG().replace(/^<svg[^>]*>/,"").replace(/<\/svg>$/,"")+'</svg>');
+    document.head.appendChild(link);
+  }catch(e){}
+}
+
+/* ---------------- Built reports -------------------------------------- */
+var Reports={
+  pms:function(){
+    var js=sortBy(DB.pmsjobs||[],"dueDate");
+    if(!js.length) return UI.alert("No maintenance jobs recorded yet.");
+    var rows=js.map(function(j){
+      var st = j.status==="Completed"?"Completed" : (j.dueDate&&days(j.dueDate)<0?"OVERDUE":"In order");
+      return '<tr><td>'+esc(j.jobNo||"")+'</td><td>'+esc(vesselName(j.vessel))+'</td><td>'+esc(j.component||"")+'</td><td>'+esc(j.job||"")+'</td>'+
+             '<td>'+esc(j.basis||"")+'</td><td>'+esc(dmy(j.lastDone))+'</td><td>'+esc(dmy(j.dueDate))+'</td><td>'+esc(j.criticality||"")+'</td><td>'+st+'</td></tr>';
+    }).join("");
+    Print.show("PLANNED MAINTENANCE STATUS","All vessels",'<table class="pgrid"><thead><tr><th>Job no.</th><th>Vessel</th><th>Component</th><th>Job</th><th>Basis</th><th>Last done</th><th>Next due</th><th>Criticality</th><th>Standing</th></tr></thead><tbody>'+rows+'</tbody></table>',true);
+  },
+  defects:function(){
+    var ds=(DB.defects||[]).filter(function(d){return d.status!=="Closed";});
+    if(!ds.length) return UI.alert("There are no open defects.");
+    var rows=sortBy(ds,"reported",true).map(function(d){
+      return '<tr><td>'+esc(d.refNo||"")+'</td><td>'+esc(vesselName(d.vessel))+'</td><td>'+esc(d.equipment||"")+'</td><td>'+esc(d.description||"")+'</td>'+
+             '<td>'+esc(d.severity||"")+'</td><td>'+esc(dmy(d.reported))+'</td><td>'+esc(dmy(d.targetDate))+'</td><td>'+esc(d.status||"")+'</td></tr>';
+    }).join("");
+    Print.show("OPEN DEFECTS AND REPAIRS","All vessels",'<table class="pgrid"><thead><tr><th>Ref.</th><th>Vessel</th><th>Equipment</th><th>Defect</th><th>Severity</th><th>Reported</th><th>Target</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table>',true);
+  },
+  crewPicker:function(){
+    if(!DB.vessels.length) return UI.alert("Add a vessel first.");
+    UI.open("Crew list","<div class='f'><label>Vessel</label><select id='clv'>"+vesselOpts().map(function(o){return '<option value="'+o.v+'">'+esc(o.l)+'</option>';}).join("")+"</select></div>",
+      '<button class="btn g" onclick="UI.close()">Cancel</button><button class="btn o" onclick="var v=document.getElementById(\'clv\').value;UI.close();Views.printCrewList(v)">Build crew list</button>',"sm");
+  },
+  crewDocs:function(){
+    var cs=(DB.crew||[]).filter(function(c){return c.status!=="Separated";});
+    if(!cs.length) return UI.alert("No crew recorded yet.");
+    cs.sort(function(a,b){ return (vesselName(a.vessel)+a.rank).localeCompare(vesselName(b.vessel)+b.rank); });
+    var rows=cs.map(function(c){
+      function cell(d){ if(!d) return '<td></td>'; return '<td'+(days(d)<0?' style="background:#f7d7d4"':(days(d)<=45?' style="background:#fbf0d5"':''))+'>'+dmy(d)+'</td>'; }
+      return '<tr><td>'+esc(c.ccn||"")+'</td><td>'+esc(c.name)+'</td><td>'+esc(c.rank||"")+'</td><td>'+esc(vesselName(c.vessel))+'</td>'+
+             cell(c.contractEnd)+cell(c.sirbExp)+cell(c.licenseExp)+cell(c.medicalExp)+cell(c.sidExp)+'</tr>';
+    }).join("");
+    Print.show("CREW DOCUMENT VALIDITY","All vessels — shaded cells are expired or fall due within 45 days",
+      '<table class="pgrid"><thead><tr><th>Crew no.</th><th>Name</th><th>Rank</th><th>Vessel</th><th>Contract end</th><th>SIRB</th><th>Licence / COP</th><th>Medical</th><th>MARINA ID</th></tr></thead><tbody>'+rows+'</tbody></table>',true);
+  },
+  findings:function(){
+    var f=(DB.findings||[]).filter(function(x){return x.status!=="Verified and closed";});
+    if(!f.length) return UI.alert("There are no open findings.");
+    var rows=sortBy(f,"targetDate").map(function(x){
+      var late=x.targetDate&&days(x.targetDate)<0;
+      return '<tr><td>'+esc(x.refNo||"")+'</td><td>'+esc(x.vessel?vesselName(x.vessel):"Office")+'</td><td>'+esc(x.category||"")+'</td>'+
+        '<td>'+esc(x.clause||"")+'</td><td>'+esc(x.description||"")+'</td><td>'+esc(x.correctiveAction||"")+'</td>'+
+        '<td>'+esc(x.responsible||"")+'</td><td>'+esc(dmy(x.targetDate))+(late?" (OVERDUE)":"")+'</td><td>'+esc(x.status||"")+'</td></tr>';
+    }).join("");
+    Print.show("OPEN FINDINGS AND CORRECTIVE ACTIONS","All vessels and office",
+      '<table class="pgrid"><thead><tr><th>No.</th><th>Scope</th><th>Category</th><th>Reference</th><th>Finding</th><th>Corrective action</th><th>Responsible</th><th>Target</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table>',true,true);
+  },
+
+  procurement:function(){
+    var rs=sortBy(DB.requisitions||[],"date",true);
+    if(!rs.length) return UI.alert("No requisitions recorded yet.");
+    var rows=rs.map(function(r){
+      return '<tr><td>'+esc(r.reqNo||"")+'</td><td>'+esc(dmy(r.date))+'</td><td>'+esc(vesselName(r.vessel))+'</td><td>'+esc(r.category||"")+'</td>'+
+             '<td>'+esc(r.item||"")+'</td><td style="text-align:right">'+esc(r.quantity||"")+' '+esc(r.unit||"")+'</td><td>'+esc(r.supplier||"")+'</td>'+
+             '<td style="text-align:right">'+peso(num(r.actualCost)||num(r.estCost))+'</td><td>'+esc(r.status||"")+'</td></tr>';
+    }).join("");
+    var total=rs.reduce(function(s,r){return s+(num(r.actualCost)||num(r.estCost));},0);
+    Print.show("PROCUREMENT STATUS REPORT","All vessels",
+      '<table class="pgrid"><thead><tr><th>Req. no.</th><th>Date</th><th>Vessel</th><th>Category</th><th>Item</th><th>Qty</th><th>Supplier</th><th>Value</th><th>Status</th></tr></thead><tbody>'+rows+
+      '<tr><td colspan="7" style="text-align:right"><b>Total</b></td><td style="text-align:right"><b>'+peso(total)+'</b></td><td></td></tr></tbody></table>',true);
+  },
+  safety:function(){
+    var from=new Date(Date.now()-90*86400000).toISOString().slice(0,10);
+    var dr=(DB.drills||[]).filter(function(d){return d.date>=from;});
+    var inc=(DB.incidents||[]).filter(function(i){return i.date>=from;});
+    var au=(DB.audits||[]).filter(function(a){return a.date>=from;});
+    var byType={}; inc.forEach(function(i){ byType[i.type||"Other"]=(byType[i.type||"Other"]||0)+1; });
+    var h='<table class="pgrid" style="margin-bottom:10px"><tbody>'+
+      '<tr><td style="width:40%"><b>Drills and training conducted</b></td><td>'+dr.length+'</td></tr>'+
+      '<tr><td><b>Safety reports raised</b></td><td>'+inc.length+'</td></tr>'+
+      '<tr><td><b>Reports still open</b></td><td>'+inc.filter(function(i){return i.status!=="Closed";}).length+'</td></tr>'+
+      '<tr><td><b>Audits and inspections</b></td><td>'+au.length+'</td></tr>'+
+      '<tr><td><b>Non-conformities raised</b></td><td>'+au.reduce(function(s,a){return s+num(a.ncr);},0)+'</td></tr>'+
+      '<tr><td><b>Findings logged and tracked</b></td><td>'+(DB.findings||[]).length+'</td></tr>'+
+      '<tr><td><b>Findings still open</b></td><td>'+(DB.findings||[]).filter(function(f){return f.status!=="Verified and closed";}).length+'</td></tr>'+
+      '<tr><td><b>Findings closed within target date</b></td><td>'+(DB.findings||[]).filter(function(f){return f.status==="Verified and closed"&&f.closedDate&&f.targetDate&&f.closedDate<=f.targetDate;}).length+'</td></tr>'+
+      '<tr><td><b>Drills overdue at date of report</b></td><td>'+DrillPlan.gaps().length+'</td></tr></tbody></table>';
+    h+='<table class="pgrid"><thead><tr><th>Report type</th><th>Count in period</th></tr></thead><tbody>'+
+       (Object.keys(byType).length? Object.keys(byType).map(function(k){return '<tr><td>'+esc(k)+'</td><td>'+byType[k]+'</td></tr>';}).join("") : '<tr><td colspan="2">No reports raised in the period.</td></tr>')+
+       '</tbody></table>';
+    Print.show("SAFETY PERFORMANCE SUMMARY","Period "+dmy(from)+" to "+dmy(today()),h,false,true);
+  }
+};
+
+/* ---------------- Print -------------------------------------------- */
+var Print={
+  show:function(title, meta, bodyHTML, landscape, signature){
+    var head=
+      '<div class="ph">'+
+        '<div class="phmark">'+logoSVG()+'</div>'+
+        '<div class="co">NAVI SHIPPING OPC</div>'+
+        '<div class="tag">NAVIgating Excellence Towards Innovative Shipping</div>'+
+        '<div class="ad">18 Leo St., Veraville Homes 1, Almanza Uno, Las Pi\u00F1as City, NCR 1750, Philippines<br>'+
+        'Tel +63 2 8894 3101 &nbsp;&middot;&nbsp; Mobile +63 927 621 2975 &nbsp;&middot;&nbsp; operations@navishipping.com.ph &nbsp;&middot;&nbsp; www.navishipping.com.ph</div>'+
+      '</div>'+
+      '<div class="pt">'+esc(title)+'</div>'+
+      '<div class="pmeta"><span>'+esc(meta||"")+'</span><span>Generated '+dmy(today())+' &nbsp;&middot;&nbsp; NS FLEET</span></div>';
+    var sign = signature? '<div class="psign"><div>Prepared by</div><div>Verified by</div><div>Approved by</div></div>' : '';
+    var foot='<div class="pfoot">Generated by NS FLEET \u2014 NAVI Shipping Fleet Management System. This report reflects the data held in the system at the date shown.</div>'+
+             '<div class="seal">VALID ONLY WITH THE COMPANY\u2019S OFFICIAL DRY SEAL.</div>';
+    var full=head+bodyHTML+sign+foot;
+    document.getElementById("printArea").innerHTML=full;
+    var st=document.getElementById("pageStyle");
+    if(!st){ st=document.createElement("style"); st.id="pageStyle"; document.head.appendChild(st); }
+    st.textContent="@media print{@page{size:A4 "+(landscape?"landscape":"portrait")+";margin:10mm}}";
+    UI.open("Print preview",
+      '<div style="background:#fff;border:1px solid #d7e1e6;padding:14px;border-radius:6px;overflow-x:auto">'+full+'</div>'+
+      '<p style="font-size:12.5px;color:#5d7480;margin:10px 0 0">Press <b>Print</b> below to send this to the printer or save it as a PDF. On iPad, choose <b>Share</b> then <b>Save to Files</b> from the print dialog.</p>',
+      '<button class="btn g" onclick="UI.close()">Close</button><button class="btn o" onclick="window.print()">Print</button>',"lg");
+  }
+};
+
+/* ---------------- Seed: NAVI fleet ----------------------------------- */
+function seed(db){
+  var fleet=[
+    {name:"MTUG NAVI 01", type:"Tugboat", mgmt:"Owned", engineHP:720, flag:"Philippines", tradeArea:"Philippine coastwise"},
+    {name:"LCT OCEAN 1", type:"Landing Craft Tank (LCT)", mgmt:"Full Management", flag:"Philippines", tradeArea:"Philippine coastwise"},
+    {name:"STELLA MARIS 1", type:"Landing Craft Tank (LCT)", mgmt:"Full Management", flag:"Philippines", tradeArea:"Philippine coastwise"},
+    {name:"MV KAMILA", type:"Landing Craft Tank (LCT)", mgmt:"Full Management", owner:"Oriental Transmarine Inc.", flag:"Philippines", tradeArea:"Philippine coastwise"},
+    {name:"MB AMC SPEED", type:"Speedboat / Motor Banca", mgmt:"Time Chartered-in", flag:"Philippines", tradeArea:"Philippine coastwise"}
+  ];
+  fleet.forEach(function(f){
+    f.id=uid(); f.created=new Date().toISOString();
+    db.vessels.push(f);
+  });
+  return db;
+}
+
+/* ---------------- Boot ----------------------------------------------- */
+(function(){
+  var _r=App.render;
+  App.render=function(){ _r.call(App); App.refreshAlertBadge(); };
+})();
+App.start();
+</script>
+</body>
+</html>
