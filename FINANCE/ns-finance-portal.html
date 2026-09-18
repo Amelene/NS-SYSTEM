@@ -3012,13 +3012,6 @@ function expPost(x){
     amount:expTotal(x), expense:x.id, vessel:(x.chargeType==='Vessel'? x.chargeRef : ''),
     desc:(x.payee? x.payee+' \u2014 ' : '')+(x.desc||x.cat||'expense')});
 }
-/* Suggestions for the expense form, drawn from Master data (typing any other name still works). */
-function expDatalists(){
-  function dl(id, names){ var seen={}; return '<datalist id="'+id+'">'+names.filter(function(n){ if(!n||seen[n]) return false; seen[n]=1; return true; })
-    .map(function(n){ return '<option value="'+esc(n)+'"></option>'; }).join('')+'</datalist>'; }
-  var crew=DB.employees.map(function(e){ return e.name; });
-  return dl('dl_payees', DB.vendors.map(function(v0){ return v0.name; }).concat(crew)) + dl('dl_staff', crew);
-}
 function expModal(id){
   var x = id? byId('expenses',id) : null;
   var g=function(k,d){ return x && x[k]!=null && x[k]!==''? x[k] : d; };
@@ -3028,12 +3021,12 @@ function expModal(id){
     '<label class="f"><span>Paid from \u2014 fund or account</span>'+
       refFinderHTML('x_fund','banks',g('fund',''),null)+'</label>'+
     '<label class="f"><span>Receipt / OR number</span><input class="inp" id="x_or" value="'+esc(g('orNo',''))+'"></label>'+
-    '<label class="f"><span>Paid to</span><input class="inp" id="x_payee" list="dl_payees" placeholder="Pick a supplier or crew, or type a name" value="'+
+    '<label class="f"><span>Paid to</span><input class="inp" id="x_payee" placeholder="Supplier, agent or person" value="'+
       esc(g('payee',''))+'"></label>'+
     '<label class="f"><span>Category</span><select class="inp" id="x_cat">'+
       EXP_CATS.map(function(c){ return '<option'+(g('cat','')===c?' selected':'')+'>'+esc(c)+'</option>'; }).join('')+
       '</select></label>'+
-    '<label class="f"><span>Requested by</span><input class="inp" id="x_by" list="dl_staff" placeholder="Pick from Master data or type" value="'+esc(g('by',''))+'">'+expDatalists()+'</label>'+
+    '<label class="f"><span>Requested by</span><input class="inp" id="x_by" value="'+esc(g('by',''))+'"></label>'+
     '</div>'+
     '<label class="f"><span>Particulars</span><input class="inp" id="x_desc" value="'+esc(g('desc',''))+'"></label>'+
     '<h4 style="background:none;border:none;padding:6px 0 2px;font-size:13px">Charge to \u2014 cost centre</h4>'+

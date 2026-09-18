@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NS FINANCE — NAVI Shipping OPC</title>
-<script src="_fake-supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
 <script src="finance-sync.js"></script>
 <script>
@@ -6494,54 +6494,6 @@ document.addEventListener('click', function(ev){
 });
 load();
 render();
-</script>
-<pre id="result" style="display:none"></pre>
-<script>
-(async function(){
-  const out=[]; window.addEventListener("error", e => out.push("ERR "+e.message));
-  const wait = ms => new Promise(r=>setTimeout(r,ms));
-  const $ = id => document.getElementById(id);
-  for(let i=0;i<100 && !(window.DB && typeof render==="function");i++) await wait(100);
-  try{
-    if(!DB.vessels.length){
-      restoreStarterData(); await wait(200);
-      const b=[...document.querySelectorAll('#modalBox .btn')].find(x=>!x.classList.contains('alt'));
-      if(b) b.click(); await wait(300); closeModal();
-    }
-    // give the principal an address and add a charterer + supplier to Master data
-    const orient = DB.clients[0]; orient.address = orient.address || "Oriental Bldg, Manila";
-    if(!DB.clients.some(c=>c.name==="ICTSI")) DB.clients.push({id:"cl-ictsi", name:"ICTSI", kind:"Charterer", address:"MICT South Access Rd, Manila", terms:30});
-    if(!DB.vendors.length) DB.vendors.push({id:"vend-1", name:"Batangas Marine Supply", cat:"Spares & stores", terms:30});
-    save();
-
-    go('charters'); crudModal(M_CHARTER);
-    const ves=$('f_vessel'), own=$('f_ownerName'), chr=$('f_charterer');
-    out.push("charter form: vessel="+ves.tagName+"("+(ves.options.length-1)+" vessels) owner="+own.tagName+"("+(own.options.length-1)+") charterer="+chr.tagName+"("+(chr.options.length-1)+")");
-    ves.value = [...ves.options].find(o=>/KAMILA/i.test(o.value)).value; ves.dispatchEvent(new Event('change'));
-    out.push("pick MV KAMILA -> owner '"+own.value+"', owner address '"+$('f_ownerAddress').value+"'");
-    chr.value="ICTSI"; chr.dispatchEvent(new Event('change'));
-    out.push("pick charterer ICTSI -> address '"+$('f_chartererAddress').value+"'");
-    const before = DB.charters.length; modalSave(); await wait(100);
-    const ch = DB.charters[DB.charters.length-1];
-    out.push("saved charter: "+(DB.charters.length-before)+" new, vessel='"+(ch&&ch.vessel)+"' charterer='"+(ch&&ch.charterer)+"' owner='"+(ch&&ch.ownerName)+"'");
-    // a charter whose vessel is not in Master data keeps its value when edited
-    DB.charters.push({id:"ch-legacy", no:"CH-OLD", type:"Voyage charter", vessel:"OLD BARGE 9", charterer:"Someone Else", status:"Draft"});
-    crudModal(M_CHARTER, byId('charters','ch-legacy'));
-    out.push("legacy charter edit keeps vessel: '"+$('f_vessel').value+"' charterer: '"+$('f_charterer').value+"'"); closeModal();
-    DB.charters = DB.charters.filter(c=>c.id!=="ch-legacy");
-
-    go('voyages'); crudModal(M_VOY);
-    out.push("voyage form: vessel="+$('f_vessel').tagName+" charterer="+$('f_charterer').tagName); closeModal();
-
-    go('expenses'); expModal();
-    out.push("expense suggestions: payees="+document.querySelectorAll('#dl_payees option').length+" staff="+document.querySelectorAll('#dl_staff option').length+" | payee input list="+$('x_payee').getAttribute('list')); closeModal();
-
-    const bad=[]; NAV.filter(n=>n.id).forEach(n=>{ try{ go(n.id); if(!$('view').innerHTML.trim()) bad.push(n.id); }catch(e){ bad.push(n.id+':'+e.message); } });
-    out.push("tabs with problems: "+(bad.length?bad.join(', '):'none'));
-    if(location.hash==="#shot"){ go('charters'); crudModal(M_CHARTER); const v=$('f_vessel'); v.value=[...v.options].find(o=>/KAMILA/i.test(o.value)).value; v.dispatchEvent(new Event('change')); $('f_charterer').value="ICTSI"; $('f_charterer').dispatchEvent(new Event('change')); }
-  }catch(e){ out.push("ERR "+e.message); }
-  document.getElementById("result").textContent=["RESULT"].concat(out,["END"]).join("\n");
-})();
 </script>
 </body>
 </html>
