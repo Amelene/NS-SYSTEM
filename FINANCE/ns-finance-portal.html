@@ -1036,6 +1036,16 @@ function formHTML(fields, d){
           return '<option value="'+esc(vv)+'"'+(vv===val?' selected':'')+'>'+esc(lb)+'</option>'; }).join('')+'</select>';
     } else if(f.type==='ref'){
       inner=refFinderHTML(id, f.ref, val, f.label);
+    } else if(f.type==='refname'){
+      /* dropdown filled from Master data; stores the name (charter documents print the name) */
+      var names=(DB[f.ref]||[]).map(function(o){ return o.name; }).filter(Boolean);
+      if(val && names.indexOf(val)<0) names.unshift(val);   // keep an older value that is not in Master data
+      inner='<select class="inp" id="'+id+'"'+(f.onpick?' onchange="'+f.onpick+'(this)"':'')+'>'+
+        '<option value="">— Select from Master data —</option>'+
+        names.map(function(n){ return '<option value="'+esc(n)+'"'+(n===val?' selected':'')+'>'+esc(n)+'</option>'; }).join('')+
+        '</select>'+
+        (names.length? '' : '<span class="hint">Nothing on file yet — add it under '+
+          '<a href="#" class="elink" onclick="event.preventDefault();closeModal();go(\'masters\',\''+f.ref+'\')">Master data</a> first.</span>');
     } else if(f.type==='textarea'){
       inner='<textarea class="inp" id="'+id+'">'+esc(val||'')+'</textarea>';
     } else if(f.type==='check'){
@@ -2450,12 +2460,30 @@ function panel(title, inner, tools){
 /* =======================================================================
    COMMERCIAL — CHARTERS
    ======================================================================= */
+/* Charter form: picking from Master data fills in the matching owner / charterer details. */
+function clientByName(n){ return DB.clients.filter(function(c){ return c.name===n; })[0]||null; }
+function setSelectValue(sel, val){
+  if(!sel || !val) return;
+  var has=[].some.call(sel.options, function(o){ return o.value===val; });
+  if(!has){ var o=document.createElement('option'); o.value=val; o.textContent=val; sel.appendChild(o); }
+  sel.value=val;
+}
+function fillAddress(fieldId, client){ var a=document.getElementById(fieldId); if(a && client && client.address) a.value=client.address; }
+function pickCharterVessel(sel){
+  var v0=DB.vessels.filter(function(x){ return x.name===sel.value; })[0];
+  var owner=v0 && v0.owner ? byId('clients', v0.owner) : null;
+  if(!owner) return;
+  setSelectValue(document.getElementById('f_ownerName'), owner.name);
+  fillAddress('f_ownerAddress', owner);
+}
+function pickCharterOwner(sel){ fillAddress('f_ownerAddress', clientByName(sel.value)); }
+function pickCharterer(sel){ fillAddress('f_chartererAddress', clientByName(sel.value)); }
 var M_CHARTER={coll:'charters',single:'charter',cols2:true,docPrefix:'CH',fields:[
   {k:'type',l:'Charter type',type:'select',opts:['Time charter','Voyage charter','Bareboat charter','Contract of affreightment']},
-  {k:'vessel',l:'Vessel',req:1},
-  {k:'ownerName',l:'Owner\u2019s name'},
+  {k:'vessel',l:'Vessel',req:1,type:'refname',ref:'vessels',onpick:'pickCharterVessel'},
+  {k:'ownerName',l:'Owner\u2019s name',type:'refname',ref:'clients',onpick:'pickCharterOwner'},
   {k:'ownerAddress',l:'Owner\u2019s address',type:'textarea'},
-  {k:'charterer',l:'Charterer',req:1},
+  {k:'charterer',l:'Charterer',req:1,type:'refname',ref:'clients',onpick:'pickCharterer'},
   {k:'chartererAddress',l:'Charterer\u2019s address',type:'textarea'},
   {k:'cpDate',l:'Charter party date',type:'date'},
   {k:'from',l:'Delivery / laycan from',type:'date'},
@@ -2642,9 +2670,9 @@ function hireToInvoice(id){
    VOYAGE & PORT DISBURSEMENT
    ======================================================================= */
 var M_VOY={coll:'voyages',single:'voyage',cols2:true,docPrefix:'VOY',fields:[
-  {k:'vessel',l:'Vessel',req:1},
+  {k:'vessel',l:'Vessel',req:1,type:'refname',ref:'vessels'},
   {k:'charter',l:'Charter reference'},
-  {k:'charterer',l:'Charterer'},
+  {k:'charterer',l:'Charterer',type:'refname',ref:'clients'},
   {k:'agent',l:'Port agent'},
   {k:'from',l:'Load port'},{k:'to',l:'Discharge port'},
   {k:'sailed',l:'Date sailed',type:'date'},{k:'arrived',l:'Date arrived',type:'date'},
