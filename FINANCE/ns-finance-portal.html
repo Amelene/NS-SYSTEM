@@ -4,6 +4,100 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NS FINANCE — NAVI Shipping OPC</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="finance-sync.js"></script>
+<script>
+/* Sign-in gate: finance staff only. Everything is loaded from the NS - FINANCE
+   Supabase project (finance-sync.js) before the System starts. */
+document.documentElement.style.visibility = "hidden";
+var finAuth = null;
+(function(){
+  var IDLE_MS = 60 * 60 * 1000;            // sign out after 60 minutes without activity
+  function toLogin(){ location.replace("index.html"); }
+  try{ finAuth = window.supabase.createClient(FIN_SUPABASE_URL, FIN_SUPABASE_ANON_KEY); }
+  catch(e){ toLogin(); return; }
+  var domReady = new Promise(function(r){
+    if(document.readyState !== "loading") r(); else document.addEventListener("DOMContentLoaded", r);
+  });
+  finAuth.auth.getSession().then(async function(res){
+    var session = res.data && res.data.session;
+    if(!session){ toLogin(); return; }
+    await domReady;
+    document.documentElement.style.visibility = "";
+    var el = document.getElementById("finUser");
+    if(el) el.textContent = session.user.email;
+    startApp(session.user);
+  }).catch(toLogin);
+
+  function escHtml(s){ return String(s || "").replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+  function showLoading(html){
+    var ov = document.getElementById("finLoading");
+    if(!ov){
+      ov = document.createElement("div");
+      ov.id = "finLoading";
+      ov.style.cssText = "position:fixed;inset:0;z-index:9999;background:#EDF2F3;display:flex;align-items:center;justify-content:center;padding:24px;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#0B3D56;text-align:center;";
+      document.body.appendChild(ov);
+    }
+    ov.innerHTML = '<div style="max-width:520px;font-size:15px;line-height:1.5;">' + html + '</div>';
+    return ov;
+  }
+  var btnCss = 'border:none;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;margin:4px;';
+
+  async function startApp(user){
+    var ov = showLoading("<b>Loading NS FINANCE…</b>");
+    try{
+      await FinCloud.boot(finAuth, user, function(msg){ showLoading("<b>" + escHtml(msg) + "</b>"); });
+    }catch(e){
+      console.error(e);
+      if(e && e.code === "NOT_STAFF"){
+        showLoading(
+          '<div style="font-size:18px;font-weight:800;margin-bottom:8px;">No access to NS FINANCE</div>' +
+          '<p>You are signed in as <b>' + escHtml(user.email) + '</b>, but this account is not on the finance staff list. ' +
+          'Ask your admin to add your email to <b>fin_staff</b> in the NS - FINANCE Supabase project.</p>' +
+          '<button id="finOut" style="' + btnCss + 'background:#0B3D56;color:#fff;">Sign out</button>');
+        document.getElementById("finOut").onclick = function(){ finSignOut(); };
+        return;
+      }
+      var msg = (e && e.message) || String(e);
+      var missing = /fin_records|fin_settings|fin_is_staff|schema cache|does not exist|could not find the function|bucket not found/i.test(msg);
+      showLoading(
+        '<div style="font-size:18px;font-weight:800;margin-bottom:8px;">Couldn\'t load NS FINANCE</div>' +
+        (missing
+          ? '<p>The database for NS FINANCE hasn\'t been set up yet. Open the <b>NS - FINANCE</b> project in Supabase → <b>SQL Editor</b>, paste in <b>supabase-finance-setup.sql</b>, click <b>Run</b>, then retry.</p>'
+          : '<p>Check your internet connection and try again.</p>') +
+        '<p style="font-size:12px;color:#5F7C84;">' + escHtml(msg) + '</p>' +
+        '<button id="finRetry" style="' + btnCss + 'background:#0E6B76;color:#fff;">Retry</button>' +
+        '<button id="finOut2" style="' + btnCss + 'background:#fff;color:#0B3D56;border:1px solid #D5E0E2;">Sign out</button>');
+      document.getElementById("finRetry").onclick = function(){ startApp(user); };
+      document.getElementById("finOut2").onclick = function(){ finSignOut(); };
+      return;
+    }
+    ov.remove();
+    var app = document.createElement("script");
+    app.textContent = document.getElementById("finApp").textContent;
+    document.body.appendChild(app);
+    startIdleWatch();
+  }
+
+  function startIdleWatch(){
+    var last = Date.now();
+    ["click","keydown","mousemove","touchstart","scroll","wheel"].forEach(function(ev){
+      document.addEventListener(ev, function(){ last = Date.now(); }, {passive:true, capture:true});
+    });
+    setInterval(function(){ if(Date.now() - last > IDLE_MS) finSignOut("idle"); }, 30000);
+  }
+})();
+
+/* Waits (up to 10 s) for unsaved changes to reach the database, then signs out. */
+async function finSignOut(reason){
+  for(var i = 0; i < 20 && window.FinCloud && FinCloud.isBusy(); i++){
+    await new Promise(function(r){ setTimeout(r, 500); });
+  }
+  try{ if(finAuth) await finAuth.auth.signOut(); }catch(e){}
+  location.replace("index.html?out=" + (reason === "idle" ? "idle" : "1"));
+}
+</script>
 <style>
 :root{
   --ink:#0B2B33; --teal:#0E5A66; --teal-d:#093F48; --teal-l:#1B7C8C;
@@ -245,6 +339,117 @@ table.reg col.c-num{width:8.75%}
   #view{padding:12px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* Cloud save status and signed-in user (Supabase) */
+.cloud-pill{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;background:#EEF4F5;border:1px solid var(--line);color:var(--ink);font-size:12px;font-weight:600;white-space:nowrap}
+.cloud-pill:empty{display:none}
+.cloud-pill .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.fin-user{color:var(--muted);font-size:12px;white-space:nowrap}
+@media (max-width:640px){ .fin-user{display:none} }
+
+/* ---------- refreshed look ---------- */
+body{background:#F1F5F6}
+#idbar{display:none}                       /* the sidebar already carries the NS FINANCE brand */
+header.top{top:0;padding:14px 22px;box-shadow:0 1px 0 var(--line)}
+header.top h1{font-size:20px;font-weight:800;color:var(--teal-d)}
+header.top .ttl{border-left:4px solid var(--orange);padding-left:12px}
+#view{padding:22px}
+.btn{border-radius:9px}
+.btn.sm{border-radius:8px}
+.fic{width:100%;height:100%;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* sidebar */
+#sidebar{background:linear-gradient(180deg,#0A3A45 0%,#072C35 100%);width:248px;flex:0 0 248px}
+#brand{padding:16px 16px 14px}
+nav{padding:4px 10px 18px}
+nav .grp{padding:16px 10px 6px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#6F97A0}
+nav a{border-left:none;border-radius:9px;padding:8px 10px;margin:1px 0;gap:11px;color:#C7DCE0}
+nav a:hover{background:rgba(255,255,255,.07)}
+nav a.on{background:rgba(255,255,255,.12);color:#fff;font-weight:600;box-shadow:inset 3px 0 0 var(--orange)}
+nav .nav-ic{display:flex;width:18px;height:18px;flex:0 0 18px;color:#7FB3BC}
+nav a:hover .nav-ic{color:#CFE6EA}
+nav a.on .nav-ic{color:#F4A07F}
+.side-foot{margin-top:auto;padding:12px 18px 16px;font-size:11px;color:#6F97A0;border-top:1px solid rgba(255,255,255,.08)}
+
+/* welcome band */
+.hero{border-radius:16px;padding:22px 24px;box-shadow:0 8px 22px rgba(9,63,72,.18)}
+.hero h2{font-size:22px}
+.hero .hact .btn{background:#fff;color:var(--teal-d);border:none;font-weight:700}
+.hero .hact .btn:hover{background:#E8F3F5}
+.hero .hact .btn.ghost{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.32)}
+.hero .hact .btn.ghost:hover{background:rgba(255,255,255,.2)}
+
+/* stat cards */
+.kpis{gap:14px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+@media (min-width:901px){ .kpis:has(> .kpi:nth-child(6):last-child){grid-template-columns:repeat(3,1fr)} }
+.kpi{position:relative;border-radius:14px;padding:16px 16px 15px;box-shadow:0 1px 2px rgba(9,40,46,.05);overflow:hidden}
+.kpi.accent,.kpi.tealtop{border-top:1px solid var(--line)}
+.kpi.tealtop{--k:var(--teal-l)} .kpi.accent{--k:var(--orange)}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--k,#C7D6D9)}
+.kpi.has-ic{display:flex;gap:13px;align-items:flex-start}
+.kpi-ic{width:40px;height:40px;flex:0 0 40px;border-radius:11px;padding:10px;color:var(--k,var(--teal));background:color-mix(in srgb, var(--k,#0E5A66) 12%, #fff)}
+.kpi .kbody{min-width:0}
+.kpi .lab{font-size:12px;font-weight:600;color:var(--muted)}
+.kpi .val{font-size:22px;font-weight:800;color:var(--ink);margin-top:2px}
+
+/* panels and tables */
+.panel{border-radius:14px;box-shadow:0 1px 2px rgba(9,40,46,.05)}
+.panel > h3{background:#fff;padding:14px 16px;font-size:15px;font-weight:700;color:var(--teal-d)}
+th{text-transform:uppercase;font-size:10.5px;letter-spacing:.05em;font-weight:700}
+tbody tr:hover{background:#F5FAFB}
+.tabs button{padding:7px 14px;font-weight:600}
+.empty{padding:34px 16px}
+ul.attn{list-style:none;margin:0;padding:4px 0}
+ul.attn li{display:flex;gap:11px;align-items:flex-start;padding:10px 16px;border-bottom:1px solid #EEF3F4;font-size:13.5px}
+ul.attn li:last-child{border-bottom:none}
+ul.attn .ai{width:18px;height:18px;flex:0 0 18px;margin-top:1px;color:var(--orange)}
+ul.attn li.link{cursor:pointer}
+ul.attn li.link:hover{background:#F5FAFB}
+ul.attn .at{flex:1;min-width:0}
+ul.attn .ago{flex:0 0 auto;font-size:12px;font-weight:700;color:var(--teal);white-space:nowrap}
+.kpi.link{cursor:pointer;transition:border-color .15s, box-shadow .15s, transform .05s}
+.kpi.link:hover{border-color:var(--k,var(--teal));box-shadow:0 4px 14px rgba(9,40,46,.1)}
+.kpi.link:active{transform:translateY(1px)}
+
+/* links between records (vessel, principal, supplier) */
+a.elink{color:var(--teal);font-weight:600;text-decoration:none;border-bottom:1px dashed rgba(14,90,102,.35)}
+a.elink:hover{color:var(--orange);border-bottom-color:var(--orange)}
+.prof-sec{margin-top:16px}
+.prof-sec-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;font-size:13.5px;color:var(--teal-d)}
+.prof-sec-h a.elink{font-size:12px;border-bottom:none}
+@media print{ a.elink{color:inherit;border:none;font-weight:inherit} }
+
+/* dashboard: all modules */
+.mod-grp{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:4px 2px 8px}
+.mod-grp:not(:first-child){margin-top:18px}
+.mod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.mod-card{display:flex;align-items:flex-start;gap:12px;padding:12px 12px 12px 13px;background:#fff;border:1px solid var(--line);border-radius:12px;
+  text-align:left;cursor:pointer;font:inherit;color:inherit;transition:border-color .15s, box-shadow .15s, transform .05s}
+.mod-card:hover{border-color:var(--teal-l);box-shadow:0 4px 14px rgba(9,40,46,.09)}
+.mod-card:active{transform:translateY(1px)}
+.mod-card.warn{border-color:#F3C7B4;background:#FFFAF7}
+.mod-ic{width:36px;height:36px;flex:0 0 36px;border-radius:10px;padding:8px;background:#E6F1F3;color:var(--teal)}
+.mod-card.warn .mod-ic{background:#FDE7DF;color:var(--orange)}
+.mod-body{display:flex;flex-direction:column;min-width:0;flex:1}
+.mod-title{font-size:12px;font-weight:700;color:var(--muted)}
+.mod-main{font-size:15.5px;font-weight:800;color:var(--ink);margin-top:1px}
+.mod-sub{font-size:11.5px;color:var(--muted);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mod-flag{display:inline-flex;align-items:center;gap:5px;margin-top:6px;font-size:11.5px;font-weight:700;color:#B8461F}
+.mod-flag .fic{width:13px;height:13px}
+.mod-go{font-size:22px;line-height:1;color:#A9C1C6;align-self:center}
+.mod-card:hover .mod-go{color:var(--teal)}
+@media (max-width:900px){ .mod-grid{grid-template-columns:1fr} }
+.modal{border-radius:14px}
+.modal h4{background:#fff;font-size:16px;font-weight:700;color:var(--teal-d);padding:15px 18px}
+
+@media (max-width:900px){
+  #sidebar{width:260px;flex-basis:260px}
+  #sidebar:not(.open){left:-270px}
+  #view{padding:14px}
+  header.top{padding:12px 14px}
+  .kpis{grid-template-columns:1fr 1fr;gap:10px}
+  .kpi.has-ic{flex-direction:column;gap:8px}
+  .kpi .val{font-size:18px}
+}
 </style>
 </head>
 <body>
@@ -253,6 +458,7 @@ table.reg col.c-num{width:8.75%}
   <aside id="sidebar">
     <div id="brand"></div>
     <nav id="nav"></nav>
+    <div class="side-foot">Confidential &mdash; internal use</div>
   </aside>
   <main>
     <div id="idbar">
@@ -268,13 +474,16 @@ table.reg col.c-num{width:8.75%}
         <div class="sub" id="pgSub">NAVI Shipping OPC</div>
       </div>
       <div class="spacer"></div>
+      <span id="cloudStatus" class="cloud-pill"></span>
+      <span id="finUser" class="fin-user"></span>
       <button class="btn alt sm" onclick="go('settings')">Settings &amp; backup</button>
+      <button class="btn alt sm" onclick="finSignOut()">Sign out</button>
     </header>
     <div id="view"></div>
     <footer id="foot">
       <div class="fmark" id="footMark"></div>
       <div>
-        <div><b id="footCo">NAVI SHIPPING OPC</b> &mdash; NS FINANCE, Finance and Accounting Portal &middot; version 1.0</div>
+        <div><b id="footCo">NAVI SHIPPING OPC</b> &mdash; NS FINANCE, Finance and Accounting System &middot; version 1.0</div>
         <div id="footAddr"></div>
         <div>Management accounts for internal control and owner reporting. Statutory returns and audited statements remain with the company&rsquo;s external accountant.</div>
       </div>
@@ -295,10 +504,10 @@ table.reg col.c-num{width:8.75%}
 </div>
 <div id="toast"></div>
 
-<script>
+<script type="text/plain" id="finApp">
 /* =======================================================================
    NS FINANCE — NAVI Shipping OPC
-   Standalone finance & accounting portal. No server, no internet needed.
+   Standalone finance & accounting system. No server, no internet needed.
    Data is stored in this browser (localStorage). Back up regularly.
    ======================================================================= */
 
@@ -335,7 +544,7 @@ function logoSVG(scale){
   '<text x="158" y="80" font-family="Verdana,Geneva,sans-serif" font-size="46" font-weight="700" fill="'+
     (dark?'#FFFFFF':'#0B3D56')+'" letter-spacing="1">NS <tspan fill="'+(dark?'#7FC2CB':'#0E6B76')+'">FINANCE</tspan></text>'+
   '<text x="160" y="110" font-family="Verdana,Geneva,sans-serif" font-size="15" fill="'+
-    (dark?'#9FC6CD':'#3C6670')+'">Finance and Accounting Portal</text>'+
+    (dark?'#9FC6CD':'#3C6670')+'">Finance and Accounting System</text>'+
   '<rect x="160" y="120" width="300" height="3" fill="#C9962B"/>'+
   '<text x="160" y="141" font-family="Verdana,Geneva,sans-serif" font-size="12" fill="'+
     (dark?'#7FA4AC':'#6B8A91')+'">NAVI SHIPPING OPC</text></svg>';
@@ -379,7 +588,7 @@ function seededData(){
 }
 function load(){
   var raw=null;
-  try{ raw=localStorage.getItem(KEY); }catch(e){}
+  try{ raw=finStore.getItem(KEY); }catch(e){}
   if(raw){ try{ DB=JSON.parse(raw); }catch(e){ DB=null; } }
   if(!DB){
     /* a copy saved with its data carries it here; the browser store takes over from now on */
@@ -394,7 +603,7 @@ function load(){
   if(!DB.coa.length) DB.coa = defaultCOA();
 }
 function save(){
-  try{ localStorage.setItem(KEY, JSON.stringify(DB)); }
+  try{ finStore.setItem(KEY, JSON.stringify(DB)); }
   catch(e){ toast('Storage full. Export a backup and remove old attachments.'); }
 }
 function uid(){ return 'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
@@ -739,33 +948,60 @@ function computeLine(emp, ln, pr){
 /* =======================================================================
    NAVIGATION
    ======================================================================= */
+/* ---------- line icons (Lucide, stroke = currentColor) ---------- */
+var FIN_ICONS={
+  dashboard:'<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
+  scroll:'<path d="M15 12h-5"/><path d="M15 8h-5"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/>',
+  receipt:'<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/>',
+  ship:'<path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 .6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76"/><path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6"/><path d="M12 10v4"/><path d="M12 2v3"/>',
+  file:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/>',
+  cart:'<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>',
+  wallet:'<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>',
+  bank:'<line x1="3" x2="21" y1="22" y2="22"/><line x1="6" x2="6" y1="18" y2="11"/><line x1="10" x2="10" y1="18" y2="11"/><line x1="14" x2="14" y1="18" y2="11"/><line x1="18" x2="18" y1="18" y2="11"/><polygon points="12 2 20 7 4 7"/>',
+  briefcase:'<rect width="20" height="14" x="2" y="7" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
+  banknote:'<rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>',
+  fileplus:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M9 15h6"/><path d="M12 18v-6"/>',
+  folder:'<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+  scale:'<path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>',
+  pie:'<path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/>',
+  wrench:'<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+  shield:'<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+  book:'<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+  chart:'<path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
+  database:'<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/>',
+  settings:'<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+  alert:'<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  check:'<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>'
+};
+function ficon(n){ return '<svg class="fic" viewBox="0 0 24 24" aria-hidden="true">'+(FIN_ICONS[n]||'')+'</svg>'; }
+
 var NAV=[
   {g:'Overview'},
-  {id:'dashboard', t:'Dashboard'},
+  {id:'dashboard', t:'Dashboard', ic:'dashboard'},
   {g:'Commercial'},
-  {id:'charters', t:'Charter contracts'},
-  {id:'hire', t:'Hire &amp; freight statements'},
-  {id:'voyages', t:'Voyage &amp; port disbursement'},
+  {id:'charters', t:'Charter contracts', ic:'scroll'},
+  {id:'hire', t:'Hire &amp; freight statements', ic:'receipt'},
+  {id:'voyages', t:'Voyage &amp; port disbursement', ic:'ship'},
   {g:'Money in / out'},
-  {id:'billing', t:'Billing &amp; receivables'},
-  {id:'payables', t:'Payables &amp; procurement'},
-  {id:'expenses', t:'Daily expenses &amp; RF'},
-  {id:'cash', t:'Cash &amp; bank'},
-  {id:'owners', t:'Principal / owner accounts'},
+  {id:'billing', t:'Billing &amp; receivables', ic:'file'},
+  {id:'payables', t:'Payables &amp; procurement', ic:'cart'},
+  {id:'expenses', t:'Daily expenses &amp; RF', ic:'wallet'},
+  {id:'cash', t:'Cash &amp; bank', ic:'bank'},
+  {id:'owners', t:'Principal / owner accounts', ic:'briefcase'},
   {g:'People'},
-  {id:'payroll', t:'Payroll'},
-  {id:'genforms', t:'Generate contract &amp; forms'},
-  {id:'crewdocs', t:'Crew contracts &amp; forms'},
-  {id:'statutory', t:'Statutory &amp; BIR'},
+  {id:'payroll', t:'Payroll', ic:'banknote'},
+  {id:'genforms', t:'Generate contract &amp; forms', ic:'fileplus'},
+  {id:'crewdocs', t:'Crew contracts &amp; forms', ic:'folder'},
+  {id:'statutory', t:'Statutory &amp; BIR', ic:'scale'},
   {g:'Control'},
-  {id:'budget', t:'Vessel budgets'},
-  {id:'projects', t:'Drydock &amp; repair projects'},
-  {id:'assets', t:'Assets &amp; insurance'},
-  {id:'gl', t:'Journal &amp; ledger'},
+  {id:'budget', t:'Vessel budgets', ic:'pie'},
+  {id:'projects', t:'Drydock &amp; repair projects', ic:'wrench'},
+  {id:'assets', t:'Assets &amp; insurance', ic:'shield'},
+  {id:'gl', t:'Journal &amp; ledger', ic:'book'},
   {g:'Output'},
-  {id:'reports', t:'Reports'},
-  {id:'masters', t:'Master data'},
-  {id:'settings', t:'Settings &amp; backup'}
+  {id:'reports', t:'Reports', ic:'chart'},
+  {id:'masters', t:'Master data', ic:'database'},
+  {id:'settings', t:'Settings &amp; backup', ic:'settings'}
 ];
 var PAGE='dashboard', SUB={};
 function go(p, sub){
@@ -781,7 +1017,8 @@ function renderNav(){
   document.getElementById('nav').innerHTML = NAV.map(function(n){
     if(n.g) return '<div class="grp">'+n.g+'</div>';
     return '<a class="'+(PAGE===n.id?'on':'')+'" tabindex="0" role="button" onclick="go(\''+n.id+'\')" '+
-      'onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();go(\''+n.id+'\')}"><span class="dot"></span>'+n.t+'</a>';
+      'onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();go(\''+n.id+'\')}">'+
+      (n.ic?'<span class="nav-ic">'+ficon(n.ic)+'</span>':'<span class="dot"></span>')+n.t+'</a>';
   }).join('');
 }
 
@@ -1002,9 +1239,9 @@ function viewMasters(){
     return '<button class="'+(s===t[0]?'on':'')+'" onclick="setSub(\'masters\',\''+t[0]+'\')">'+t[1]+'</button>'; }).join('')+'</div>';
 
   if(s==='vessels'){
-    var cols=[{h:'Vessel',k:'name'},{h:'Type',k:'type'},
+    var cols=[{h:'Vessel',f:function(r){return '<b>'+vLink(r.id)+'</b>';}},{h:'Type',k:'type'},
       {h:'Basis',f:function(r){return r.basis?'<span class="tag or">'+esc(r.basis)+'</span>':'';}},
-      {h:'Principal',f:function(r){return esc(nameOf('clients',r.owner));}},
+      {h:'Principal',f:function(r){return cLink(r.owner);}},
       {h:'MARINA reg.',k:'marina'},{h:'GRT',r:1,f:function(r){return num(r.grt,0);}},
       {h:'Mgmt fee / mo',r:1,f:function(r){return money(r.mgmtFee);}},
       {h:'Crew fee / mo',r:1,f:function(r){return money(r.crewFee);}},
@@ -1020,7 +1257,7 @@ function viewMasters(){
        'Fee amounts, MARINA registry numbers and tonnages are left blank \u2014 fill those in from each signed agreement and certificate.</div>';
   }
   if(s==='clients'){
-    var c2=[{h:'Company',k:'name'},{h:'Relationship',k:'kind'},{h:'Contact',k:'contact'},{h:'Email',k:'email'},{h:'Terms',f:function(r){return (r.terms||0)+' days';}}];
+    var c2=[{h:'Company',f:function(r){return '<b>'+cLink(r.id)+'</b>';}},{h:'Relationship',k:'kind'},{h:'Contact',k:'contact'},{h:'Email',k:'email'},{h:'Terms',f:function(r){return (r.terms||0)+' days';}}];
     h+='<div class="note">Owner and charterer details live here. A principal can also be created straight from the '+
        'vessel form \u2014 type the company name in the <b>new principal</b> box and it is added on save.</div>';
     h+=panel('Principals, owners and charterers', tableHTML(DB.clients,c2,function(r){
@@ -1030,7 +1267,7 @@ function viewMasters(){
       '<button class="btn alt" onclick="loadClientList()">Load client list from company profile</button>');
   }
   if(s==='vendors'){
-    var c3=[{h:'Supplier',k:'name'},{h:'Category',k:'cat'},{h:'TIN',k:'tin'},
+    var c3=[{h:'Supplier',f:function(r){return '<b>'+sLink(r.id)+'</b>';}},{h:'Category',k:'cat'},{h:'TIN',k:'tin'},
       {h:'VAT',f:function(r){return r.vatReg?'<span class="tag good">VAT</span>':'<span class="tag">Non-VAT</span>';}},
       {h:'Contact',k:'contact'},{h:'Terms',f:function(r){return (r.terms||0)+' days';}}];
     h+=panel('Suppliers and service providers', tableHTML(DB.vendors,c3,function(r){
@@ -1079,7 +1316,7 @@ function viewMasters(){
         : '<p class="hint" style="margin-top:10px">Choose a vessel to see only its crew, together with that vessel’s salary scale.</p>')+
       '</div></div>';
     var c4=[{h:'CCN',f:function(r){return crewId(r)? '<b>'+esc(crewId(r))+'</b>' : '<span class="tag bad">no CCN</span>';}},{h:'Name',f:function(r){return crewLabelEsc(r);}},{h:'Type',k:'kind'},{h:'Position',k:'position'},
-      {h:'Vessel',f:function(r){return esc(nameOf('vessels',r.vessel));}},
+      {h:'Vessel',f:function(r){return vLink(r.vessel);}},
       {h:'Basic / mo',r:1,f:function(r){ var b=Number(r.basic||0)+Number(r.dailyRate||0);
         return b? money(r.payBasis==='Daily rate'?r.dailyRate:r.basic) : '<span class="tag bad">rate not set</span>';}},
       {h:'Contract end',f:function(r){
@@ -1169,7 +1406,7 @@ function loadParticulars(){
     toast('Particulars loaded for '+hits.length+' vessel(s).'); return true;
   },'Load particulars');
 }
-/* Everything in the portal that is tied to a vessel, in one place. */
+/* Everything in the System that is tied to a vessel, in one place. */
 function vesselLinks(id){
   var yr=String(new Date().getFullYear());
   var crew=DB.employees.filter(function(e){ return e.vessel===id && e.status!=='Separated'; });
@@ -1254,12 +1491,103 @@ function clientModal(id){
   if(!c){ toast('No principal is set for this vessel. Set one in Edit vessel first.'); return; }
   crudModal(M_CLIENT, c);
 }
+/* ---------- cross-links: vessel / principal / supplier names open their profile ---------- */
+function entLink(kind, id){
+  var coll={v:'vessels',c:'clients',s:'vendors'}[kind];
+  var name=nameOf(coll,id);
+  if(!name) return '';
+  return '<a href="#" class="elink" onclick="event.preventDefault();event.stopPropagation();openProfile(\''+kind+'\',\''+esc(id)+'\')">'+esc(name)+'</a>';
+}
+function vLink(id){ return entLink('v',id); }
+function cLink(id){ return entLink('c',id); }
+function sLink(id){ return entLink('s',id); }
+function openProfile(kind, id){
+  closeModal();
+  if(kind==='v') vesselProfile(id);
+  else if(kind==='c') clientProfile(id);
+  else if(kind==='s') vendorProfile(id);
+}
+/* a small linked list table used inside profiles */
+function miniTable(rows, cols, emptyText){
+  if(!rows.length) return '<div class="hint" style="padding:6px 0">'+esc(emptyText||'None on file.')+'</div>';
+  return '<div class="tablewrap"><table><thead><tr>'+cols.map(function(c){ return '<th class="'+(c.r?'r':'')+'">'+c.h+'</th>'; }).join('')+
+    '</tr></thead><tbody>'+rows.map(function(r){ return '<tr>'+cols.map(function(c){
+      return '<td class="'+(c.r?'r num':'')+'">'+c.f(r)+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody></table></div>';
+}
+function profSection(title, inner, page, pageLabel){
+  return '<div class="prof-sec"><div class="prof-sec-h"><b>'+title+'</b>'+
+    (page?'<a href="#" class="elink" onclick="event.preventDefault();closeModal();go(\''+page+'\')">'+pageLabel+' &rarr;</a>':'')+
+    '</div>'+inner+'</div>';
+}
+
+function clientProfile(id){
+  var c=byId('clients',id);
+  if(!c){ toast('That principal is no longer on file.'); return; }
+  var vessels=DB.vessels.filter(function(v0){ return v0.owner===id; });
+  var inv=DB.invoices.filter(function(i){ return i.client===id && i.status!=='Cancelled'; });
+  var open=inv.filter(function(i){ return i.status!=='Paid'; });
+  var ar=sum(open,function(i){ return invCalc(i).collect-paidOf(i.id); });
+  var overdue=open.filter(function(i){ return i.due && new Date(i.due)<new Date(); });
+  var led=ownerLedger(id), bal=led.length? led[led.length-1].bal : 0;
+  var row=function(a,b){ return b? '<tr><th style="width:170px">'+esc(a)+'</th><td>'+esc(b)+'</td></tr>' : ''; };
+  var body='<div class="row" style="margin-bottom:12px">'+
+      '<button class="btn" onclick="closeModal();crudModal(M_CLIENT, byId(\'clients\',\''+id+'\'))">Edit details</button>'+
+      '<button class="btn alt" onclick="closeModal();go(\'billing\')">Billing</button>'+
+      '<button class="btn alt" onclick="closeModal();go(\'owners\')">Owner accounts</button>'+
+    '</div>'+
+    '<div class="grid2"><div><table>'+row('Company',c.name)+row('Relationship',c.kind)+row('Contact person',c.contact)+
+      row('Email',c.email)+row('Phone',c.phone)+'</table></div><div><table>'+row('TIN',c.tin)+
+      row('Payment terms',c.terms? c.terms+' days' : '')+row('Address',c.address)+'</table></div></div>'+
+    '<div class="kpis" style="margin-top:12px">'+
+      kpi('Vessels', vessels.length, 'managed or chartered','', 'ship', '#0E6B76')+
+      kpi('Receivables', money(ar), open.length+' open · '+overdue.length+' past due','', 'receipt', '#E1653B', 'billing')+
+      kpi('Owner account', money(bal), bal<0? 'over-disbursed — request funding' : 'balance held','', 'briefcase', bal<0?'#B3261E':'#1F7A4D', 'owners')+
+    '</div>'+
+    profSection('Vessels', miniTable(vessels,[
+      {h:'Vessel',f:function(r){ return vLink(r.id); }},{h:'Type',f:function(r){ return esc(r.type||''); }},
+      {h:'Basis',f:function(r){ return esc(r.basis||''); }},{h:'Status',f:function(r){ return esc(r.status||''); }}],
+      'No vessel lists this company as its principal.'), 'masters', 'Vessel list')+
+    profSection('Open invoices', miniTable(open,[
+      {h:'No.',f:function(r){ return '<b>'+esc(r.no||'')+'</b>'; }},{h:'Date',f:function(r){ return esc(r.date||''); }},
+      {h:'Due',f:function(r){ return esc(r.due||''); }},{h:'Vessel',f:function(r){ return vLink(r.vessel)||'—'; }},
+      {h:'Balance',r:1,f:function(r){ return money(invCalc(r).collect-paidOf(r.id)); }}],
+      'No open invoices.'), 'billing', 'Billing & receivables');
+  openModal('Principal — '+c.name, body, null, null, true);
+}
+
+function vendorProfile(id){
+  var s=byId('vendors',id);
+  if(!s){ toast('That supplier is no longer on file.'); return; }
+  var bills=DB.bills.filter(function(b){ return b.vendor===id; });
+  var unpaid=bills.filter(function(b){ return b.status!=='Paid'; });
+  var ap=sum(unpaid,function(b){ return billCalc(b).pay-billPaid(b.id); });
+  var ytd=sum(bills.filter(function(b){ return String(b.date||'').slice(0,4)===String(new Date().getFullYear()); }),function(b){ return billCalc(b).net; });
+  var row=function(a,b){ return b? '<tr><th style="width:170px">'+esc(a)+'</th><td>'+esc(b)+'</td></tr>' : ''; };
+  var body='<div class="row" style="margin-bottom:12px">'+
+      '<button class="btn" onclick="closeModal();crudModal(M_VENDOR, byId(\'vendors\',\''+id+'\'))">Edit details</button>'+
+      '<button class="btn alt" onclick="closeModal();go(\'payables\')">Payables</button>'+
+    '</div>'+
+    '<div class="grid2"><div><table>'+row('Supplier',s.name)+row('Category',s.cat)+row('Contact person',s.contact)+
+      row('Phone',s.phone)+'</table></div><div><table>'+row('Email',s.email)+row('TIN',s.tin)+
+      row('VAT registered',s.vatReg?'Yes':'')+row('Payment terms',s.terms? s.terms+' days' : '')+'</table></div></div>'+
+    '<div class="kpis" style="margin-top:12px">'+
+      kpi('To pay', money(ap), unpaid.length+' bill(s) unpaid','', 'cart', '#B3261E', 'payables')+
+      kpi('Purchases this year', money(ytd), 'net of VAT','', 'receipt', '#0E6B76')+
+    '</div>'+
+    profSection('Unpaid bills', miniTable(unpaid,[
+      {h:'No.',f:function(r){ return '<b>'+esc(r.no||'')+'</b>'; }},{h:'Date',f:function(r){ return esc(r.date||''); }},
+      {h:'Vessel',f:function(r){ return vLink(r.vessel)||'—'; }},
+      {h:'To pay',r:1,f:function(r){ return money(billCalc(r).pay-billPaid(r.id)); }}],
+      'Nothing unpaid.'), 'payables', 'Payables & procurement');
+  openModal('Supplier — '+s.name, body, null, null, true);
+}
+
 function vesselProfile(id){
   var v0=byId('vessels',id), L=vesselLinks(id), sc=DB.wagescale.filter(function(x){return x.vessel===id;});
   var row=function(a,b){ return b? '<tr><th style="width:190px">'+esc(a)+'</th><td>'+esc(b)+'</td></tr>' : ''; };
   var body='<div class="grid2"><div><table>'+
     row('Vessel', v0.name)+row('Type', v0.type)+row('Engagement', v0.basis)+
-    row('Principal', nameOf('clients',v0.owner))+row('CSMA date', v0.csma)+
+    (v0.owner?'<tr><th style="width:190px">Principal</th><td>'+cLink(v0.owner)+'</td></tr>':'')+row('CSMA date', v0.csma)+
     row('Official number', v0.marina)+row('Call sign', v0.callSign)+
     row('Flag', v0.flag)+row('Port of registry', v0.homeport)+
     row('Status', v0.status)+
@@ -1273,12 +1601,12 @@ function vesselProfile(id){
     row('Cargo capacity', v0.cargoCap)+row('Fuel consumption', v0.fuelCons)+row('Average speed', v0.speed)+
     '</table></div></div>'+
     '<div class="kpis" style="margin-top:12px">'+
-      kpi('Crew on record', L.crew.length, L.payHead+' payroll line(s) to date')+
-      kpi('Charters', L.charters.length, L.onHire.length+' on hire')+
-      kpi('Receivables', money(L.ar), L.open.length+' invoice(s) open','accent')+
-      kpi('Payables', money(L.ap), L.unpaid.length+' bill(s) unpaid')+
-      kpi('Result this year', money(L.result.res), 'revenue '+money(L.result.rev)+' \u00b7 cost '+money(L.result.cost),'tealtop')+
-      kpi('Salary scale', sc.length+' rank'+(sc.length===1?'':'s'), sc.length?'rates on file':'no rates yet')+
+      kpi('Crew on record', L.crew.length, L.payHead+' payroll line(s) to date','', 'banknote', '#0E6B76', 'masters:employees')+
+      kpi('Charters', L.charters.length, L.onHire.length+' on hire','', 'scroll', '#0B3D56', 'charters')+
+      kpi('Receivables', money(L.ar), L.open.length+' invoice(s) open','', 'receipt', '#E1653B', 'billing')+
+      kpi('Payables', money(L.ap), L.unpaid.length+' bill(s) unpaid','', 'cart', '#B3261E', 'payables')+
+      kpi('Result this year', money(L.result.res), 'revenue '+money(L.result.rev)+' \u00b7 cost '+money(L.result.cost),'', 'chart', '#1F7A4D', 'reports')+
+      kpi('Salary scale', sc.length+' rank'+(sc.length===1?'':'s'), sc.length?'rates on file':'no rates yet','', 'scale', '#C9962B', 'masters:scale')+
     '</div>'+
     (L.crew.length? '<div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>Crew</th><th>Rank</th>'+
       '<th>Contract end</th><th class="r">Gross monthly</th><th class="r">SSS EE</th><th class="r">PhilHealth EE</th>'+
@@ -1289,6 +1617,18 @@ function vesselProfile(id){
         '<td class="r num">'+(c.none?'\u2014':num(c.sss))+'</td><td class="r num">'+(c.none?'\u2014':num(c.ph))+'</td>'+
         '<td class="r num">'+(c.none?'\u2014':num(c.pag))+'</td><td class="r num"><b>'+(c.none?'\u2014':num(c.ee))+'</b></td></tr>'; }).join('')+
       '</tbody></table></div>' : '')+
+    profSection('Charters', miniTable(L.charters,[
+      {h:'Ref',f:function(r){ return '<b>'+esc(r.no||'')+'</b>'; }},{h:'Charterer',f:function(r){ return esc(r.charterer||''); }},
+      {h:'Status',f:function(r){ return esc(r.status||''); }},{h:'Redelivery',f:function(r){ return esc(r.to||''); }}],
+      'No charters for this vessel.'), 'charters', 'Charter contracts')+
+    profSection('Open invoices', miniTable(L.open,[
+      {h:'No.',f:function(r){ return '<b>'+esc(r.no||'')+'</b>'; }},{h:'Client',f:function(r){ return cLink(r.client)||'\u2014'; }},
+      {h:'Due',f:function(r){ return esc(r.due||''); }},{h:'Balance',r:1,f:function(r){ return money(invCalc(r).collect-paidOf(r.id)); }}],
+      'No open invoices.'), 'billing', 'Billing & receivables')+
+    profSection('Unpaid bills', miniTable(L.unpaid,[
+      {h:'No.',f:function(r){ return '<b>'+esc(r.no||'')+'</b>'; }},{h:'Supplier',f:function(r){ return sLink(r.vendor)||'\u2014'; }},
+      {h:'Date',f:function(r){ return esc(r.date||''); }},{h:'To pay',r:1,f:function(r){ return money(billCalc(r).pay-billPaid(r.id)); }}],
+      'Nothing unpaid.'), 'payables', 'Payables & procurement')+
     (L.ins.length? '<p class="hint" style="margin-top:10px">Insurance: '+L.ins.map(function(x){
         return esc(x.kind)+' to '+esc(x.to||''); }).join(' \u00b7 ')+'</p>' : '')+
     (L.prj.length? '<p class="hint">Open projects: '+L.prj.map(function(x){ return esc(x.title); }).join(' \u00b7 ')+'</p>' : '')+
@@ -1537,7 +1877,7 @@ var SCALE_SETS=[
    match:function(n){ return /AMC/i.test(n); },
    source:'Crew cost schedule for MB AMC Speed supplied 14 September 2026. Leave pay is basic ÷ 30 and '+
           '13th month is basic ÷ 12. The SSS and PhilHealth columns on that sheet do not reconcile with the '+
-          'basic pay shown — the portal computes them from the rates in Settings.',
+          'basic pay shown — the System computes them from the rates in Settings.',
    effective:'2026-09-14',
    rates:AMC_SCALE },
  { id:'setC',
@@ -1914,7 +2254,7 @@ function empModal(id){
     '<label class="f"><span>Contract end</span><input class="inp" type="date" id="e_contractEnd" value="'+esc(e.contractEnd||'')+'"></label>'+
     '<label class="f"><span>Extension of contract (end)</span>'+
       '<input class="inp" type="date" id="e_extEnd" value="'+esc(e.extEnd||'')+'">'+
-      '<span class="hint">Leave blank if not extended. When set, this is the date the portal treats as the contract end.</span></label>'+
+      '<span class="hint">Leave blank if not extended. When set, this is the date the System treats as the contract end.</span></label>'+
     '</div>'+
     '<h4 style="background:none;border:none;padding:8px 0 2px;font-size:13px">Notarised contract \u2014 scanned copy</h4>'+
     '<label class="f"><span>All pages in one file</span>'+
@@ -2154,9 +2494,14 @@ function viewCharters(){
      kpi('Bareboat', DB.charters.filter(function(c){return c.type==='Bareboat charter';}).length,'')+'</div>';
   return h;
 }
-function kpi(lab,val,note,cls){
-  return '<div class="kpi '+(cls||'')+'"><div class="lab">'+esc(lab)+'</div><div class="val num">'+
-    (typeof val==='number'?num(val,0):val)+'</div>'+(note?'<div class="note" style="background:none;border:none;padding:0;color:#5F7C84">'+esc(note)+'</div>':'')+'</div>';
+function kpi(lab,val,note,cls,ic,color,page){
+  var pp=page? String(page).split(':') : null;
+  var target=pp? 'closeModal();go(\''+pp[0]+'\''+(pp[1]?',\''+pp[1]+'\'':'')+')' : '';
+  var link=page? ' role="button" tabindex="0" onclick="'+target+'" onkeydown="if(event.key===\'Enter\'){'+target+'}"' : '';
+  return '<div class="kpi '+(cls||'')+(ic?' has-ic':'')+(page?' link':'')+'"'+link+(color?' style="--k:'+color+'"':'')+'>'+
+    (ic?'<span class="kpi-ic">'+ficon(ic)+'</span>':'')+
+    '<div class="kbody"><div class="lab">'+esc(lab)+'</div><div class="val num">'+
+    (typeof val==='number'?num(val,0):val)+'</div>'+(note?'<div class="note" style="background:none;border:none;padding:0;color:#5F7C84">'+esc(note)+'</div>':'')+'</div></div>';
 }
 
 /* ---------- hire / freight statements ---------- */
@@ -2370,8 +2715,8 @@ function viewBilling(){
     kpi('Output VAT this month', money(sum(DB.invoices.filter(function(i){return ym(i.date)===ym();}),function(i){return invCalc(i).vat;})),'')+
     '</div>';
   var cols=[{h:'Invoice',k:'no'},{h:'Date',k:'date'},
-    {h:'Client',f:function(r){return esc(nameOf('clients',r.client))||'<span class="tag warn">not set</span>';}},
-    {h:'Vessel',f:function(r){return esc(nameOf('vessels',r.vessel))||'<span class="hint">\u2014</span>';}},
+    {h:'Client',f:function(r){return cLink(r.client)||'<span class="tag warn">not set</span>';}},
+    {h:'Vessel',f:function(r){return vLink(r.vessel)||'<span class="hint">\u2014</span>';}},
     {h:'Type',k:'kind'},
     {h:'Net',r:1,f:function(r){return money(invCalc(r).net);}},
     {h:'VAT',r:1,f:function(r){return money(invCalc(r).vat);}},
@@ -2515,8 +2860,8 @@ function viewPayables(){
     kpi('Withholding to remit', money(sum(DB.bills.filter(function(b){return ym(b.date)===ym();}),function(b){return billCalc(b).ewt;})),'BIR 0619-E / 1601-EQ')+
     '</div>';
   var cols=[{h:'Ref',k:'no'},{h:'Date',k:'date'},
-    {h:'Supplier',f:function(r){return esc(nameOf('vendors',r.vendor));}},
-    {h:'Vessel',f:function(r){return esc(nameOf('vessels',r.vessel));}},
+    {h:'Supplier',f:function(r){return sLink(r.vendor);}},
+    {h:'Vessel',f:function(r){return vLink(r.vessel);}},
     {h:'Category',k:'cat'},
     {h:'Net',r:1,f:function(r){return money(billCalc(r).net);}},
     {h:'Input VAT',r:1,f:function(r){return money(billCalc(r).vat);}},
@@ -3587,7 +3932,7 @@ function templatePanel(){
   return panel('Company templates \u2014 blank Word originals',
     '<div class="tablewrap"><table><thead><tr><th>Document</th><th>File</th><th class="r">Size</th><th></th></tr></thead>'+
     '<tbody>'+rows+'</tbody></table></div>'+
-    '<div class="pad hint" style="padding-top:10px">These are the approved blank forms, held inside the portal so the current version is always the one in use. '+
+    '<div class="pad hint" style="padding-top:10px">These are the approved blank forms, held inside the System so the current version is always the one in use. '+
     'Download when you need to type a document by hand or send the template to someone. To produce a filled document for a crew member, '+
     'use the buttons in the list below instead \u2014 those pull the figures automatically.<br><br>'+
     '<b>Open &amp; print</b> shows the blank form in the document pane on the right, ready to print. '+
@@ -3795,7 +4140,7 @@ function contractForCrew(id){
 function setContractCounter(){
   var y=String(new Date().getFullYear());
   var body='<p style="margin-top:0">Set where the series continues from. Use this when contracts were issued '+
-    'before the portal, or on another device, and the register here does not hold them.</p>'+
+    'before the System, or on another device, and the register here does not hold them.</p>'+
     '<label class="f"><span>Last number already used this year</span>'+
     '<input class="inp" id="cc_last" value="'+String(DB.counters['COE-'+y]||0).padStart(5,'0')+'" placeholder="00003"></label>'+
     '<p class="hint">Next issued will be one higher. Enter 00003 and the next contract becomes NS-COE-'+y+'-00004.</p>'+
@@ -3933,7 +4278,7 @@ function viewGenForms(){
       'The selector is empty because there is nobody to choose. Restore the records, or type the details by hand '+
       'in the sheet below \u2014 the documents will still print.</div>'+
       '<div class="row" style="margin-top:10px">'+
-      '<button class="btn" onclick="restoreStarterData()">Restore portal data</button>'+
+      '<button class="btn" onclick="restoreStarterData()">Restore System data</button>'+
       '<button class="btn alt" onclick="loadCrewRoster()">Load crew from crewing roster</button>'+
       '<button class="btn alt" onclick="go(\'settings\')">Import a backup</button>'+
       '</div></div>');
@@ -4085,7 +4430,7 @@ function viewCrewDocs(){
     '<div class="hint" id="cdCount" style="align-self:flex-end;padding-bottom:10px">'+list.length+' shown</div></div>';
   var cols=[{h:'No.',k:'empNo'},{h:'CCN',f:function(r){return crewId(r)? '<b>'+esc(crewId(r))+'</b>' : '<span class="tag bad">no CCN</span>';}},
     {h:'Name',f:function(r){return crewLabelEsc(r);}},{h:'Position',k:'position'},
-    {h:'Vessel',f:function(r){return esc(nameOf('vessels',r.vessel));}},
+    {h:'Vessel',f:function(r){return vLink(r.vessel);}},
     {h:'Address',f:function(r){return r.address? '<span class="tag good">on file</span>'
       : '<span class="tag warn">missing</span>';}},
     {h:'SIRB',f:function(r){
@@ -4324,7 +4669,7 @@ var CMS_CCN=[["00001", "Tecson, Carlos", "LCT OCEAN 1", "MASTER"], ["00002", "Mo
 
 function nameKey(s0){ return String(s0||'').toUpperCase().replace(/[^A-Z]/g,''); }
 function restoreStarterData(){
-  var body='<p style="margin-top:0">This rebuilds the records held inside the portal, in one pass:</p><ul>'+
+  var body='<p style="margin-top:0">This rebuilds the records held inside the System, in one pass:</p><ul>'+
     '<li>Fleet from the CSM records \u2014 7 vessels with their engagement basis</li>'+
     '<li>Vessel particulars for MV Kamila and LCT Ocean 1 (Form P-004)</li>'+
     '<li>36 crew from the crewing roster, with rank, vessel, dates and licence remarks</li>'+
@@ -4332,7 +4677,7 @@ function restoreStarterData(){
     '<li>Salary scale for MV Kamila and Stella Maris 1A</li></ul>'+
     '<p class="hint">Nothing already on file is deleted. Records that already exist are skipped or updated, '+
     'so running this twice is safe. Pay rates for crew stay at zero \u2014 those come from the wage scale.</p>';
-  openModal('Restore portal data', body, function(){
+  openModal('Restore System data', body, function(){
     var log=[];
     // vessels
     var have={}; DB.vessels.forEach(function(v0){ have[String(v0.name).toUpperCase()]=true; });
@@ -4470,7 +4815,7 @@ var DOC_TYPES=['Notarised contract of employment','Notarised allotment / authori
   'Attachment A \u2014 repatriation','Contract extension','Addendum','Other'];
 function crewDocs(e){ if(!e.docs) e.docs=[]; return e.docs; }
 function storeUsed(){
-  try{ return (localStorage.getItem(KEY)||'').length; }catch(err){ return 0; }
+  try{ return (finStore.getItem(KEY)||'').length; }catch(err){ return 0; }
 }
 function docsModal(id){
   var e=byId('employees',id), docs=crewDocs(e);
@@ -4494,7 +4839,7 @@ function docsModal(id){
     '<div class="row" style="margin-top:12px"><button class="btn" onclick="addCrewDoc(\''+e.id+'\')">File a notarised document</button></div>'+
     '<div class="note" style="margin-top:10px">Keep the signed original in the physical 201 file and the scan in Drive. '+
     'What matters here is the notarial entry \u2014 doc, page, book and series \u2014 which is what a DOLE inspector or '+
-    'an arbitrator asks for. A small scan can be held in the portal as well; larger ones belong in Drive with the link recorded.</div>';
+    'an arbitrator asks for. A small scan can be held in the System as well; larger ones belong in Drive with the link recorded.</div>';
   openModal('Documents \u2014 '+(e.name||''), body, null, null, true);
 }
 function addCrewDoc(empId){
@@ -4519,11 +4864,11 @@ function addCrewDoc(empId){
     '</div>'+
     '<label class="f"><span>Link to the scan in Drive (recommended)</span>'+
       '<input class="inp" id="dk_link" placeholder="https://drive.google.com/\u2026"></label>'+
-    '<label class="f"><span>Or attach a copy held in the portal</span>'+
+    '<label class="f"><span>Or attach a copy held in the System</span>'+
       '<input class="inp" type="file" id="dk_file" accept="image/*,application/pdf"></label>'+
     '<label class="f"><span>Note</span><input class="inp" id="dk_note"></label>'+
     '<div class="note">Photographs are shrunk before filing. A PDF is kept only if small; otherwise record the Drive link. '+
-    'Portal storage in use: about '+num(storeUsed()/1024,0)+' KB.</div>';
+    'Attached files are stored securely in the company database.</div>';
   openModal('File a notarised document', body, function(){
     var rec={id:uid(), type:v('dk_type'), contractNo:v('dk_contract'), notarised:v('dk_date'),
       notary:v('dk_notary'), docNo:v('dk_docNo'), pageNo:v('dk_pageNo'), bookNo:v('dk_bookNo'),
@@ -4547,7 +4892,7 @@ function markNotarised(rec){
 function attachFile(f, done){
   var MAXPDF=2200*1024;
   if(f.type==='application/pdf'){
-    if(f.size>MAXPDF){ done(null,'That PDF is '+num(f.size/1024,0)+' KB. The portal holds about 5,000 KB in total, '+
+    if(f.size>MAXPDF){ done(null,'That PDF is '+num(f.size/1024,0)+' KB. The System holds about 5,000 KB in total, '+
       'so scans need to stay under '+num(MAXPDF/1024,0)+' KB. Re-scan at 150 dpi in black and white, or grayscale, '+
       'and a nine-page contract usually lands near 500 KB.'); return; }
     var r=new FileReader();
@@ -4573,7 +4918,7 @@ function attachFile(f, done){
 }
 function openCrewDoc(empId, docId){
   var e=byId('employees',empId), d=crewDocs(e).filter(function(x){ return x.id===docId; })[0];
-  if(!d || !d.file){ toast('No copy held in the portal for that entry.'); return; }
+  if(!d || !d.file){ toast('No copy held in the System for that entry.'); return; }
   closeModal();
   var body = /^data:application\/pdf/.test(d.file)
     ? '<embed src="'+d.file+'" type="application/pdf" style="width:100%;height:70vh">'
@@ -4620,7 +4965,7 @@ function ccnEditor(){
   var body='<label class="f"><span>Narrow the list</span><input class="inp" id="ccnQ" autocomplete="off" '+
     'placeholder="Type a name, rank or vessel\u2026" oninput="ccnFilter()"></label>'+
     '<p class="hint" style="margin-top:0">Key the crew control number exactly as it appears on the CMS crew roster. '+
-    'Enter digits only — the portal formats them as <b>CCN 00028</b> and prints the number before the name on every document.</p>'+
+    'Enter digits only — the System formats them as <b>CCN 00028</b> and prints the number before the name on every document.</p>'+
     '<div class="tablewrap"><table><thead><tr><th>Vessel</th><th>Crew</th><th>Rank</th><th style="width:150px">CCN</th></tr></thead><tbody>'+
     pool.map(function(e){
       return '<tr data-hay="'+esc(recHay(e))+'"><td>'+esc(nameOf('vessels',e.vessel)||'—')+'</td><td>'+esc(e.name)+'</td>'+
@@ -5241,7 +5586,7 @@ var M_PRJ={coll:'projects',single:'project',cols2:true,docPrefix:'PRJ',fields:[
 function prjActual(id){ return sum(DB.bills.filter(function(b){return b.project===id;}),function(b){return billCalc(b).net;}); }
 function viewProjects(){
   var cols=[{h:'Ref',k:'no'},{h:'Project',k:'title'},
-    {h:'Vessel',f:function(r){return esc(nameOf('vessels',r.vessel));}},
+    {h:'Vessel',f:function(r){return vLink(r.vessel);}},
     {h:'Yard',f:function(r){return esc(nameOf('vendors',r.yard));}},
     {h:'Dates',f:function(r){return esc((r.start||'')+' \u2192 '+(r.end||''));}},
     {h:'Approved',r:1,f:function(r){return money(r.quoted);}},
@@ -5394,7 +5739,7 @@ function viewAssets(){
     return '<button class="'+(s===p[0]?'on':'')+'" onclick="setSub(\'assets\',\''+p[0]+'\')">'+p[1]+'</button>'; }).join('')+'</div>';
   if(s==='assets'){
     var cols=[{h:'Asset',k:'name'},{h:'Class',k:'cat'},
-      {h:'Vessel',f:function(r){return esc(nameOf('vessels',r.vessel));}},
+      {h:'Vessel',f:function(r){return vLink(r.vessel);}},
       {h:'Acquired',k:'acquired'},
       {h:'Cost',r:1,f:function(r){return money(r.cost);}},
       {h:'Annual depn.',r:1,f:function(r){return money(depn(r).annual);}},
@@ -5407,7 +5752,7 @@ function viewAssets(){
     h+='<div class="note">Drydocking cost is capitalised as a deferred charge and amortised over the survey cycle, not expensed in one month. Set the useful life to the number of years to the next special survey.</div>';
   } else {
     var cols2=[{h:'Policy',k:'policyNo'},{h:'Cover',k:'kind'},
-      {h:'Vessel',f:function(r){return esc(nameOf('vessels',r.vessel));}},
+      {h:'Vessel',f:function(r){return vLink(r.vessel);}},
       {h:'Insurer',f:function(r){return esc(nameOf('vendors',r.insurer));}},
       {h:'Period',f:function(r){return esc((r.from||'')+' \u2192 '+(r.to||''));}},
       {h:'Sum insured',r:1,f:function(r){return money(r.sumInsured);}},
@@ -5439,7 +5784,7 @@ function viewGL(){
     var cols=[{h:'Ref',k:'no'},{h:'Date',k:'date'},{h:'Particulars',k:'desc'},
       {h:'Debit account',f:function(r){return esc(nameOf('coa',r.dr,'name'));}},
       {h:'Credit account',f:function(r){return esc(nameOf('coa',r.cr,'name'));}},
-      {h:'Vessel',f:function(r){return esc(nameOf('vessels',r.vessel));}},
+      {h:'Vessel',f:function(r){return vLink(r.vessel);}},
       {h:'Amount',r:1,f:function(r){return money(r.amount);}}];
     h+=panel('Manual journal entries (adjustments, accruals, depreciation)',
       tableHTML(DB.journals.slice().sort(function(a,b){return a.date<b.date?1:-1;}),cols,function(r){
@@ -5729,6 +6074,67 @@ function printFleetPL(){
 /* =======================================================================
    DASHBOARD
    ======================================================================= */
+/* Dashboard "All modules": one card per tab, with a live summary, linking to that tab. */
+function dashModules(){
+  var m=ym(), yr=String(new Date().getFullYear());
+  var openInv=DB.invoices.filter(function(i){return i.status!=='Paid' && i.status!=='Cancelled';});
+  var overdueInv=openInv.filter(function(i){ return i.due && new Date(i.due)<new Date(); });
+  var openBill=DB.bills.filter(function(b){return b.status!=='Paid';});
+  var ar=sum(openInv,function(i){return invCalc(i).collect-paidOf(i.id);});
+  var ap=sum(openBill,function(b){return billCalc(b).pay-billPaid(b.id);});
+  var cash=sum(DB.banks,function(b){return bankBalance(b.id);});
+  var onHire=DB.charters.filter(function(c){return c.status==='On hire';}).length;
+  var activeEmp=DB.employees.filter(function(e){return e.status==='Active';}).length;
+  var crewFiles=0; DB.employees.forEach(function(e){ crewFiles+=(e.docs||[]).length; });
+  var lastRun=DB.payrolls.length? DB.payrolls[DB.payrolls.length-1] : null;
+  var expiring=DB.insurance.filter(function(p){ return p.to && new Date(p.to)>=new Date() && daysBetween(today(),p.to)<60; }).length;
+  var overDisbursed=0;
+  DB.clients.forEach(function(c){ var r=ownerLedger(c.id); if(r.length && r[r.length-1].bal<0) overDisbursed++; });
+  var openProjects=DB.projects.filter(function(x){return x.status!=='Closed';}).length;
+  var lb=DB.settings.lastBackup;
+  function plural(n,w){ return num(n,0)+' '+w+(n===1?'':'s'); }
+
+  // [main line, second line, needs attention?]
+  var S={
+    charters:[plural(DB.charters.length,'contract'), onHire+' on hire'],
+    hire:[plural(DB.hires.length,'statement'), 'Hire and freight billing'],
+    voyages:[plural(DB.voyages.length,'voyage'), 'Port disbursements'],
+    billing:[plural(openInv.length,'open invoice'), money(ar)+' outstanding', overdueInv.length? overdueInv.length+' past due' : ''],
+    payables:[plural(openBill.length,'unpaid bill'), money(ap)+' to pay'],
+    expenses:[plural(DB.expenses.filter(function(x){return ym(x.date)===m;}).length,'expense'), 'this month'],
+    cash:[plural(DB.banks.length,'account'), money(cash)+' balance', DB.banks.length? '' : 'No bank account yet'],
+    owners:[plural(DB.clients.length,'principal'), 'Owner and principal ledgers', overDisbursed? overDisbursed+' over-disbursed' : ''],
+    payroll:[plural(DB.payrolls.length,'payroll run'), lastRun? 'Last: '+(lastRun.period||lastRun.no||'') : activeEmp+' employees active'],
+    genforms:[plural(DB.contracts.length,'contract'), 'Employment contracts and forms'],
+    crewdocs:[plural(crewFiles,'file'), 'Notarised crew documents'],
+    statutory:[plural((DB.filings||[]).length,'filing'), 'BIR, SSS, PhilHealth, Pag-IBIG'],
+    budget:[plural(DB.budgets.filter(function(x){return String(x.year)===yr;}).length,'budget'), 'for '+yr],
+    projects:[plural(openProjects,'open project'), plural(DB.projects.length,'project')+' in total'],
+    assets:[plural(DB.assets.length,'asset'), plural(DB.insurance.length,'policy').replace('policys','policies'), expiring? expiring+' policy expiring' : ''],
+    gl:[plural(DB.journals.length,'journal entry').replace('entrys','entries'), 'Chart of accounts: '+DB.coa.length],
+    reports:['Reports', 'Statements and owner reports'],
+    masters:[plural(DB.vessels.length,'vessel'), plural(DB.clients.length,'client')+' · '+plural(DB.vendors.length,'vendor')],
+    settings:[lb? 'Backup '+dlong(lb) : 'No backup yet', 'Company details and backup']
+  };
+
+  var html='', group='';
+  NAV.forEach(function(n){
+    if(n.g){ group=n.g; return; }
+    if(n.id==='dashboard') return;
+    var s=S[n.id]||['',''];
+    if(group){ html+=(html?'</div>':'')+'<div class="mod-grp">'+esc(group)+'</div><div class="mod-grid">'; group=''; }
+    html+='<button type="button" class="mod-card'+(s[2]?' warn':'')+'" onclick="go(\''+n.id+'\')">'+
+      '<span class="mod-ic">'+ficon(n.ic)+'</span>'+
+      '<span class="mod-body"><span class="mod-title">'+n.t+'</span>'+
+      '<span class="mod-main">'+s[0]+'</span>'+
+      '<span class="mod-sub">'+s[1]+'</span>'+
+      (s[2]?'<span class="mod-flag">'+ficon('alert')+esc(s[2])+'</span>':'')+
+      '</span><span class="mod-go">&rsaquo;</span></button>';
+  });
+  html+='</div>';
+  return panel('All modules', '<div class="pad">'+html+'</div>');
+}
+
 function viewDashboard(){
   var openInv=DB.invoices.filter(function(i){return i.status!=='Paid' && i.status!=='Cancelled';});
   var ar=sum(openInv,function(i){return invCalc(i).collect-paidOf(i.id);});
@@ -5753,45 +6159,55 @@ function viewDashboard(){
     '<button class="btn" onclick="newInvoice()">New invoice</button>'+
     '<button class="btn" onclick="newBill()">New payable</button>'+
     '<button class="btn" onclick="newPayroll()">Run payroll</button>'+
-    '<button class="btn" onclick="exportPortal()">Save portal with my data</button>'+
+    '<button class="btn ghost" onclick="exportSystem()">Save System with my data</button>'+
     ((!DB.vessels.length || !DB.employees.length)?
-      '<button class="btn" onclick="restoreStarterData()">Restore portal data</button>':'')+
+      '<button class="btn ghost" onclick="restoreStarterData()">Restore System data</button>':'')+
     '</div></div>';
   h+='<div class="kpis">'+
-    kpi('Cash position', money(cash),'all accounts','tealtop')+
-    kpi('Receivables outstanding', money(ar), overdue.length+' invoice(s) past due','accent')+
-    kpi('Payables outstanding', money(ap), openBill.length+' bill(s) unpaid')+
-    kpi('Billed this month', money(revM),'net of VAT')+
-    kpi('Costs this month', money(costM),'own account only')+
-    kpi('Working capital', money(cash+ar-ap),'cash plus receivables less payables')+
+    kpi('Cash position', money(cash),'all accounts','', 'bank', '#0E6B76', 'cash')+
+    kpi('Receivables outstanding', money(ar), overdue.length+' invoice(s) past due','', 'receipt', '#E1653B', 'billing')+
+    kpi('Payables outstanding', money(ap), openBill.length+' bill(s) unpaid','', 'cart', '#B3261E', 'payables')+
+    kpi('Billed this month', money(revM),'net of VAT','', 'file', '#1F7A4D', 'billing')+
+    kpi('Costs this month', money(costM),'own account only','', 'wallet', '#C9962B', 'payables')+
+    kpi('Working capital', money(cash+ar-ap),'cash plus receivables less payables','', 'pie', '#0B3D56', 'reports')+
     '</div>';
 
-  // action list
+  // action list — each item links to the tab where it is fixed
   var actions=[];
+  function act(text, page, subTab){ actions.push({t:text, go:page, sub:subTab}); }
   if(!DB.vessels.length || !DB.employees.length)
-    actions.push('The portal is empty on this device — the records live in the browser, not in the file. '+
-      'Import a backup from Settings, or use Restore portal data below.');
+    act('The System has no vessels or crew yet. '+
+      'Import a backup from Settings, or use Restore System data below.', 'settings');
   var lb=DB.settings.lastBackup;
   if((DB.vessels.length||DB.employees.length) && (!lb || daysBetween(lb,today())>3))
-    actions.push('Not backed up '+(lb? 'since '+dlong(lb) : 'yet')+
-      ' — use Save portal with my data, so the records travel with the file.');
-  if(!DB.vessels.length) actions.push('Add your vessels under Master data so every transaction has a cost centre.');
-  if(!DB.banks.length) actions.push('Set up at least one bank account, and a separate trust account for principals\u2019 funds.');
+    act('No backup exported '+(lb? 'since '+dlong(lb) : 'yet')+
+      ' — everything is saved to the database, but an occasional export from Settings is a good extra copy.', 'settings');
+  if(!DB.vessels.length) act('Add your vessels under Master data so every transaction has a cost centre.', 'masters', 'vessels');
+  if(!DB.banks.length) act('Set up at least one bank account, and a separate trust account for principals’ funds.', 'cash');
   overdue.slice(0,5).forEach(function(i){
-    actions.push('Invoice '+i.no+' to '+nameOf('clients',i.client)+' is '+daysBetween(i.due,today())+' days past due \u2014 '+money(invCalc(i).collect-paidOf(i.id))+'.');
+    act('Invoice '+i.no+' to '+nameOf('clients',i.client)+' is '+daysBetween(i.due,today())+' days past due — '+money(invCalc(i).collect-paidOf(i.id))+'.', 'billing');
   });
   DB.insurance.forEach(function(p){
     if(p.to && daysBetween(today(),p.to)<60 && new Date(p.to)>=new Date())
-      actions.push('Policy '+p.policyNo+' ('+p.kind+') expires in '+daysBetween(today(),p.to)+' days.');
+      act('Policy '+p.policyNo+' ('+p.kind+') expires in '+daysBetween(today(),p.to)+' days.', 'assets');
   });
   DB.clients.forEach(function(c){
     var rows=ownerLedger(c.id); if(!rows.length) return;
     var bal=rows[rows.length-1].bal;
-    if(bal<0) actions.push('Principal account for '+c.name+' is over-disbursed by '+money(Math.abs(bal))+' \u2014 request funding.');
+    if(bal<0) act('Principal account for '+c.name+' is over-disbursed by '+money(Math.abs(bal))+' — request funding.', 'owners');
   });
+  var navLabel={}; NAV.forEach(function(n){ if(n.id) navLabel[n.id]=n.t; });
   h+=panel('What needs attention',
-    actions.length? '<div class="pad"><ul style="margin:0;padding-left:18px">'+actions.map(function(a){return '<li style="margin-bottom:6px">'+esc(a)+'</li>';}).join('')+'</ul></div>'
+    actions.length? '<ul class="attn">'+actions.map(function(a){
+        var target='go(\''+a.go+'\''+(a.sub?',\''+a.sub+'\'':'')+')';
+        return '<li class="link" tabindex="0" role="button" onclick="'+target+'" '+
+          'onkeydown="if(event.key===\'Enter\'){event.preventDefault();'+target+'}">'+
+          '<span class="ai">'+ficon('alert')+'</span><span class="at">'+esc(a.t)+'</span>'+
+          '<span class="ago">'+(navLabel[a.go]||'Open')+' &rarr;</span></li>';
+      }).join('')+'</ul>'
       : '<div class="empty">Nothing overdue. Receivables, policies and principal accounts are all current.</div>');
+
+  h+=dashModules();
 
   // fleet panel — every vessel with its linked data
   if(DB.vessels.length){
@@ -5800,9 +6216,9 @@ function viewDashboard(){
       '<th class="r">Receivables</th><th class="r">Payables</th><th class="r">Result YTD</th><th>Status</th><th></th></tr></thead><tbody>';
     DB.vessels.forEach(function(v0){
       var L=vesselLinks(v0.id);
-      fcols+='<tr><td><b>'+esc(v0.name)+'</b>'+(v0.marina?'<div class="hint">'+esc(v0.marina)+'</div>':'')+'</td>'+
+      fcols+='<tr><td><b>'+vLink(v0.id)+'</b>'+(v0.marina?'<div class="hint">'+esc(v0.marina)+'</div>':'')+'</td>'+
         '<td>'+esc(v0.type||'')+(v0.basis?'<div class="hint">'+esc(v0.basis)+'</div>':'')+'</td>'+
-        '<td>'+esc(nameOf('clients',v0.owner)||'—')+'</td>'+
+        '<td>'+(cLink(v0.owner)||'—')+'</td>'+
         '<td class="r num">'+(v0.grt?num(v0.grt,0):'—')+'</td>'+
         '<td class="r num">'+(v0.kw?num(v0.kw,0):'—')+'</td>'+
         '<td class="r num">'+num(L.crew.length,0)+'</td>'+
@@ -5830,7 +6246,7 @@ function viewDashboard(){
       {h:'Redelivery',k:'to'}],null)
       : '<div class="empty">No charter is currently marked on hire. Open the Commercial module to fix a new contract.</div>');
 
-  h+='<div class="note">NS FINANCE keeps its data inside this browser. Export a backup from Settings at the end of every working day, and before installing browser updates.</div>';
+  h+='<div class="note">NS FINANCE saves every change to the company database automatically and shares it with all finance staff. Exporting a backup from Settings now and then is still good practice.</div>';
   return h;
 }
 
@@ -5870,34 +6286,32 @@ function viewSettings(){
     (DB.settings.mgmtCode? 'A code is set. Staff are asked for it before adding, editing or deleting a bank or '+
       'cash account, and before a manual cash entry. It stays unlocked for '+num(DB.settings.mgmtWindow||10,0)+
       ' minutes once entered.'
-      : 'No code set \u2014 anyone using the portal can change bank and cash records.')+'</span></div>'+
-    '<div class="note" style="margin-top:10px">This is a deterrent, not real security. The portal and its data sit '+
+      : 'No code set \u2014 anyone using the System can change bank and cash records.')+'</span></div>'+
+    '<div class="note" style="margin-top:10px">This is a deterrent, not real security. The System and its data sit '+
     'in this file on the device, so anyone holding it can read or alter the figures directly. Treat the code as a '+
     'way of keeping honest staff from casual edits, and rely on monthly reconciliation against the bank\u2019s own '+
     'statement as the control that actually catches an error.</div></div>');
 
   h+=panel('Backup and restore',
     '<div class="pad"><div class="row">'+
-    '<button class="btn warn" onclick="restoreStarterData()">Restore portal data</button>'+
-    '<button class="btn" onclick="exportPortal()">Save portal with my data (.html)</button>'+
-    '<button class="btn alt" onclick="exportAll()">Export data only (.json)</button>'+
+    '<button class="btn warn" onclick="restoreStarterData()">Restore System data</button>'+
+    '<button class="btn" onclick="exportSystem()">Save System with my data (.html)</button>'+
+    '<button class="btn alt" onclick="exSysteml()">Export data only (.json)</button>'+
     '<button class="btn alt" onclick="document.getElementById(\'impFile\').click()">Import backup</button>'+
-    '<input type="file" id="impFile" accept=".json" style="display:none" onchange="importAll(this)">'+
+    '<input type="file" id="impFile" accept=".json" style="display:none" onchange="imSysteml(this)">'+
     '<button class="btn danger" onclick="wipeAll()">Erase all data</button></div>'+
-    '<p class="hint" style="margin-top:10px"><b>The portal file and your data are separate things.</b> '+
-    'Opening a freshly downloaded copy always starts empty, because the records sit in this browser, not in the file. '+
-    '<b>Save portal with my data</b> writes a copy of the portal with everything inside it \u2014 open that file on '+
-    'another device, or after downloading a new version, and the data is there. Clearing browser data or private '+
-    'browsing still loses whatever is only in the browser.</p>'+
+    '<p class="hint" style="margin-top:10px"><b>Your data is saved in the company database.</b> '+
+    'Every change is stored automatically and is the same on every computer and phone you sign in from. '+
+    'Exports are optional extra copies for your own records. <b>Erase all data</b> and <b>Import backup</b> '+
+    'change the shared database for all finance staff.</p>'+
     '<p class="hint">Last backup: '+(DB.settings.lastBackup? esc(dlong(DB.settings.lastBackup)) : 'never')+'</p>'+
-    '<p class="hint">Storage in use: about '+num(storeUsed()/1024,0)+' KB of roughly 5,000 KB. '+
-    'Attached scans are the bulk of it \u2014 keep large files in Drive and record the link.</p>'+
+    '<p class="hint">Data size: about '+num(storeUsed()/1024,0)+' KB. Attached scans are stored as separate files in the database.</p>'+
     '<p class="hint">Records held: '+
     ['vessels','clients','vendors','employees','charters','hires','invoices','bills','cashtx','ownertx','payrolls','projects','voyages','assets','insurance','journals']
       .map(function(k){ return k+' '+(DB[k]||[]).length; }).join(' &middot; ')+'</p></div>');
 
   h+=panel('About NS FINANCE',
-    '<div class="pad"><p style="margin-top:0">NS FINANCE is the finance and accounting portal of '+esc(s.company)+
+    '<div class="pad"><p style="margin-top:0">NS FINANCE is the finance and accounting System of '+esc(s.company)+
     ', built to sit alongside NS FLEET and the Crewing Management System. Crew personal records stay in the crewing system; '+
     'vessel certificates and maintenance stay in NS FLEET; money moves here.</p>'+
     '<p class="hint">Management accounts produced here are for internal control and owner reporting. '+
@@ -5912,12 +6326,12 @@ function saveSettings(){
   });
   save(); toast('Settings saved.'); render();
 }
-function exportAll(){
+function exSysteml(){
   downloadFile('ns-finance-backup-'+today()+'.json', JSON.stringify(DB,null,2), 'application/json');
   DB.settings.lastBackup=today(); save();
 }
-/* Saves a copy of the portal with the current data written inside it. */
-function exportPortal(){
+/* Saves a copy of the System with the current data written inside it. */
+function exportSystem(){
   try{
     var clone=document.documentElement.cloneNode(true);
     ['view','modalBox','printPaper','brandLockup','footMark','idMeta','nav','toast'].forEach(function(id){
@@ -5933,17 +6347,17 @@ function exportPortal(){
     var html='<!DOCTYPE html>\n'+clone.outerHTML;
     downloadFile('NS-FINANCE-'+today()+'.html', html, 'text/html;charset=utf-8');
     DB.settings.lastBackup=today(); save();
-    toast('Portal saved with your data. Open that file on any device to carry on.');
+    toast('System saved with your data. Open that file on any device to carry on.');
   }catch(e){ toast('Could not build the file copy on this device. Use Export full backup instead.'); }
 }
-function importAll(input){
+function imSysteml(input){
   var f=input.files&&input.files[0]; if(!f) return;
   var r=new FileReader();
   r.onload=function(){
     try{
       var d=JSON.parse(r.result);
       if(!d.settings||!d.counters) throw new Error('bad file');
-      askConfirm('Replace all current NS FINANCE data with this backup?', function(){
+      askConfirm('Replace all current NS FINANCE data with this backup? This changes the shared database for all finance staff.', function(){
         DB=d; load2(); save(); toast('Backup restored.'); render();
       },'Restore');
     }catch(e){ toast('That file could not be read as an NS FINANCE backup.'); }
@@ -5953,7 +6367,7 @@ function importAll(input){
 }
 function load2(){ var s=seed(); for(var k in s){ if(!(k in DB)) DB[k]=s[k]; } }
 function wipeAll(){
-  askConfirm('Erase every record in NS FINANCE on this device? Export a backup first — this cannot be undone.', function(){
+  askConfirm('Erase every record in NS FINANCE for ALL finance staff? This clears the shared company database. Export a backup first — this cannot be undone.', function(){
     DB=seed(); save(); toast('All data erased.'); render();
   },'Erase everything');
 }
