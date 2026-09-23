@@ -1050,6 +1050,19 @@ var SCHEMAS = {
    {k:"distance",l:"Distance (nautical miles)",t:"num",col:true,on:"Voyage.calc('distance')",focus:"Voyage.driver('distance')",hint:"Enter the distance and the speed is worked out. Leave it blank and enter the speed instead to get the distance."},
    {k:"speed",l:"Average speed (knots)",t:"num",col:true,on:"Voyage.calc('speed')",focus:"Voyage.driver('speed')"},
    {k:"passageNote",l:"Passage check",t:"ro"},
+   {k:"_fuel",l:"Fuel condition",t:"sec"},
+   {k:"fuelRobDep",l:"Departure Fuel ROB (ltrs)",t:"num",on:"Voyage.calc()",hint:"As per actual sounding."},
+   {k:"fuelRobArr",l:"Arrival Fuel ROB (ltrs)",t:"num",on:"Voyage.calc()",hint:"As per actual sounding."},
+   {k:"fuelAvgCons",l:"Average Fuel Consumption (L/H)",t:"ro",hint:"Total fuel consumed divided by steaming time."},
+   {k:"fuelConsumed",l:"Total Fuel Consumed (ltrs)",t:"ro",col:true,hint:"Departure ROB less arrival ROB."},
+   {k:"fwRobDep",l:"Departure Fresh Water ROB (tons)",t:"num",on:"Voyage.calc()"},
+   {k:"fwRobArr",l:"Arrival Fresh Water ROB (tons)",t:"num",on:"Voyage.calc()"},
+   {k:"fwAvgCons",l:"Average Fresh Water Consumption (Tons/Day)",t:"ro",hint:"Total fresh water consumed divided by steaming time."},
+   {k:"fwConsumed",l:"Total Fresh Water Consumed (tons)",t:"ro",col:true,hint:"Departure ROB less arrival ROB."},
+   {k:"loRobDep",l:"Departure Lube Oil ROB (tons)",t:"num",on:"Voyage.calc()"},
+   {k:"loRobArr",l:"Arrival Lube Oil ROB (tons)",t:"num",on:"Voyage.calc()"},
+   {k:"loAvgCons",l:"Average Lube Oil Consumption (Ltrs/Day)",t:"ro",hint:"Total lube oil consumed divided by steaming time."},
+   {k:"loConsumed",l:"Total Lube Oil Consumed (tons)",t:"ro",col:true,hint:"Departure ROB less arrival ROB."},
    {k:"_f",l:"Voyage result",t:"sec"},
    {k:"revenue",l:"Freight / hire earned (PHP)",t:"num",col:true},
    {k:"fuelCost",l:"Fuel cost (PHP)",t:"num"},
@@ -2878,6 +2891,22 @@ var Voyage={
       }
     }
     if(fNote) fNote.value=note;
+
+    var consumption=function(depId,arrId,consumedId,avgId,perDay){
+      var fDep=el(depId), fArr=el(arrId), fCons=el(consumedId), fAvg=el(avgId);
+      if(!fDep||!fArr||!fCons) return;
+      var depV=String(fDep.value||"").trim(), arrV=String(fArr.value||"").trim();
+      var consumed = (depV!==""&&arrV!=="")? num(fDep.value)-num(fArr.value) : null;
+      fCons.value = consumed===null? "" : consumed.toFixed(2);
+      if(fAvg){
+        var basis = steam===null? null : (perDay? steam/24 : steam);
+        var avg = (consumed!==null && basis>0)? consumed/basis : null;
+        fAvg.value = avg===null? "" : avg.toFixed(2);
+      }
+    };
+    consumption("fld_fuelRobDep","fld_fuelRobArr","fld_fuelConsumed","fld_fuelAvgCons",false);
+    consumption("fld_fwRobDep","fld_fwRobArr","fld_fwConsumed","fld_fwAvgCons",true);
+    consumption("fld_loRobDep","fld_loRobArr","fld_loConsumed","fld_loAvgCons",true);
   }
 };
 
